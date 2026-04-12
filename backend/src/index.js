@@ -4,6 +4,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import { projectRouter } from './routes/projects.js'
+import { buildRouter } from './routes/builds.js'
 import { setupSocketHandlers } from './socket/handlers.js'
 
 const app = express()
@@ -22,6 +23,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }))
 
 app.use('/api/projects', projectRouter)
+app.use('/api/projects', buildRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

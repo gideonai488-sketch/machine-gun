@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { AGENT_TOOLS } from './tools.js'
 import * as sandboxManager from '../sandbox/manager.js'
-import { addChatMessage, getChatHistory, updateProject } from '../store/projects.js'
+import * as codemagic from '../services/codemagic.js'
+import { addChatMessage, getChatHistory, getProject, updateProject } from '../store/projects.js'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -127,11 +128,68 @@ async function executeTool(projectId, toolName, toolInput) {
       }
     }
 
-    case 'trigger_build':
-      return `Build triggered for ${toolInput.platform}. This will be handled by GitHub Actions.`
+    case 'trigger_build': {
+      try {
+        const project = getProject(projectId)
+        const framework = project?.framework || 'react-vite'
 
-    case 'publish_app':
-      return `App published to ${toolInput.platform} on track: ${toolInput.track}`
+        if (!process.env.CODEMAGIC_API_TOKEN || !process.env.CODEMAGIC_APP_ID) {
+          return `Build for ${toolInput.platform} is ready to go. To enable cloud builds, connect your Codemagic account in Settings with CODEMAGIC_API_TOKEN and CODEMAGIC_APP_ID.`
+        }
+
+        const workflowMap = {
+          android: 'android-release',
+          ios: 'ios-release',
+          web: 'web-release',
+        }
+
+        const workflowId = workflowMap[toolInput.platform]
+        if (!workflowId) return `Unknown platform: ${toolInput.platform}`
+
+        const result = await codemagic.startBuild({
+          appId: process.env.CODEMAGIC_APP_ID,
+          workflowId,
+          branch: 'main',
+        })
+
+        return `Build started for ${toolInput.platform}. Build ID: ${result.buildId}. Codemagic is now building your ${toolInput.platform === 'android' ? 'AAB' : toolInput.platform === 'ios' ? 'IPA' : 'web'} artifact. You can track progress in the Codemagic dashboard.`
+      } catch (err) {
+        return `Failed to trigger build: ${err.message}`
+      }
+    }
+
+    case 'publish_app': {
+      try {
+        if (!process.env.CODEMAGIC_API_TOKEN || !process.env.CODEMAGIC_APP_ID) {
+          return `Publishing to ${toolInput.platform} (${toolInput.track}) is ready to go. To enable automatic publishing, connect your Codemagic account and configure store credentials (Google Play service account or App Store Connect API key) in the Codemagic dashboard.`
+        }
+
+        const workflowMap = {
+          android: 'android-release',
+          ios: 'ios-release',
+        }
+
+        const workflowId = workflowMap[toolInput.platform]
+        if (!workflowId) return `Unknown platform: ${toolInput.platform}`
+
+        const environment = {
+          variables: {
+            PUBLISH_TRACK: toolInput.track,
+          },
+        }
+
+        const result = await codemagic.startBuild({
+          appId: process.env.CODEMAGIC_APP_ID,
+          workflowId,
+          branch: 'main',
+          environment,
+        })
+
+        return `Publish build started for ${toolInput.platform} on track "${toolInput.track}". Build ID: ${result.buildId}. Codemagic will build and publish to ${toolInput.platform === 'android' ? 'Google Play' : 'App Store Connect'} automatically.`
+      } catch (err) {
+        return `Failed to publish: ${err.message}`
+      }
+    }
 
     default:
       return `Unknown tool: ${toolName}`
