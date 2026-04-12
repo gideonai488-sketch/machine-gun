@@ -117,29 +117,29 @@ export default function DeployPanel({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-card border border-border/60 rounded-t-2xl sm:rounded-2xl w-full max-w-md mx-0 sm:mx-4 shadow-2xl shadow-black/50 max-h-[85vh] overflow-y-auto">
+      <div className="relative bg-white border border-slate-200 rounded-t-2xl sm:rounded-2xl w-full max-w-md mx-0 sm:mx-4 shadow-2xl shadow-slate-300/50 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
-              <Rocket className="w-4 h-4 text-primary" />
+            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+              <Rocket className="w-4 h-4 text-red-500" />
             </div>
             <div>
               <h2 className="font-semibold text-sm">Deploy</h2>
               <p className="text-[11px] text-muted-foreground">Publish your app to the world</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer">
-            <X className="w-4 h-4 text-muted-foreground" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+            <X className="w-4 h-4 text-slate-400" />
           </button>
         </div>
 
         {status === 'success' && liveUrl ? (
           <div className="px-5 pb-5">
-            <div className="bg-success/10 border border-success/20 rounded-xl p-4 text-center">
-              <CheckCircle2 className="w-10 h-10 text-success mx-auto mb-2" />
-              <h3 className="font-semibold text-sm mb-1">Deployed!</h3>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-slate-900 mb-1">Deployed!</h3>
               <a
                 href={liveUrl}
                 target="_blank"
@@ -156,10 +156,10 @@ export default function DeployPanel({ open, onClose }) {
           </div>
         ) : status === 'success' ? (
           <div className="px-5 pb-5">
-            <div className="bg-success/10 border border-success/20 rounded-xl p-4 text-center">
-              <CheckCircle2 className="w-10 h-10 text-success mx-auto mb-2" />
-              <h3 className="font-semibold text-sm mb-1">Build Complete!</h3>
-              <p className="text-xs text-muted-foreground">Your app has been built and published.</p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-slate-900 mb-1">Build Complete!</h3>
+              <p className="text-xs text-slate-500">Your app has been built and published.</p>
             </div>
             <Button onClick={reset} variant="outline" className="w-full mt-3 h-9 text-xs">
               Done
@@ -167,10 +167,10 @@ export default function DeployPanel({ open, onClose }) {
           </div>
         ) : status === 'error' ? (
           <div className="px-5 pb-5">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 text-center">
-              <XCircle className="w-10 h-10 text-destructive mx-auto mb-2" />
-              <h3 className="font-semibold text-sm mb-1">Deploy Failed</h3>
-              <p className="text-xs text-muted-foreground">{error || 'Something went wrong'}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+              <XCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-slate-900 mb-1">Deploy Failed</h3>
+              <p className="text-xs text-slate-500">{error || 'Something went wrong'}</p>
             </div>
             <Button onClick={reset} variant="outline" className="w-full mt-3 h-9 text-xs">
               Try Again
@@ -189,10 +189,10 @@ export default function DeployPanel({ open, onClose }) {
                     onClick={() => handleDeploy(opt.id)}
                     disabled={isDisabled}
                     className={cn(
-                      'w-full flex items-center gap-3 p-3.5 rounded-xl border border-border/40 transition-all cursor-pointer active:scale-[0.98]',
+                      'w-full flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 transition-all cursor-pointer active:scale-[0.98]',
                       isDeploying
-                        ? 'bg-primary/5 border-primary/30'
-                        : 'hover:bg-muted/30 hover:border-border/60',
+                        ? 'bg-red-50/50 border-red-200'
+                        : 'hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm',
                       isDisabled && 'opacity-40 pointer-events-none'
                     )}
                   >
@@ -208,7 +208,7 @@ export default function DeployPanel({ open, onClose }) {
                       <p className="text-[11px] text-muted-foreground">{opt.description}</p>
                     </div>
                     {isDeploying && (
-                      <span className="text-[10px] text-primary font-medium shrink-0">Deploying...</span>
+                      <span className="text-[10px] text-red-500 font-medium shrink-0">Deploying...</span>
                     )}
                   </button>
 
@@ -221,8 +221,8 @@ export default function DeployPanel({ open, onClose }) {
                           className={cn(
                             'px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer',
                             androidTrack === t.id
-                              ? 'bg-primary/15 text-primary font-medium'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                              ? 'bg-red-50 text-red-600 font-medium'
+                              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
                           )}
                         >
                           {t.label}

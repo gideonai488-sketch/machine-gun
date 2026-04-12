@@ -34,15 +34,10 @@ const STATUS_CONFIG = {
 function WorkspaceContent() {
   const { projectId } = useParams()
   const {
-    project,
-    setProject,
-    setPreviewUrl,
-    rightPanel,
-    setRightPanel,
-    buildStatus,
-    setBuildStatus,
-    setFiles,
-    setFileContent,
+    project, setProject, setPreviewUrl,
+    rightPanel, setRightPanel,
+    buildStatus, setBuildStatus,
+    setFiles, setFileContent,
   } = useProject()
 
   const [mobileTab, setMobileTab] = useState('chat')
@@ -69,18 +64,13 @@ function WorkspaceContent() {
       if (data.previewUrl) setPreviewUrl(data.previewUrl)
       if (data.status) setBuildStatus(data.status)
     }
-    function handleFilesUpdated(data) {
-      setFiles(data.files)
-    }
-    function handleFileChanged(data) {
-      setFileContent(data.path, data.content)
-    }
+    function handleFilesUpdated(data) { setFiles(data.files) }
+    function handleFileChanged(data) { setFileContent(data.path, data.content) }
 
     socket.on('project:updated', handleProjectUpdated)
     socket.on('files:updated', handleFilesUpdated)
     socket.on('file:changed', handleFileChanged)
     socket.on('build:status', (data) => setBuildStatus(data.status))
-
     return () => {
       socket.off('project:updated', handleProjectUpdated)
       socket.off('files:updated', handleFilesUpdated)
@@ -90,20 +80,20 @@ function WorkspaceContent() {
   }, [setPreviewUrl, setBuildStatus, setFiles, setFileContent])
 
   return (
-    <div className="h-screen h-screen-safe flex flex-col overflow-hidden bg-background">
+    <div className="h-screen h-screen-safe flex flex-col overflow-hidden bg-white">
       {/* Top bar */}
-      <header className="h-11 sm:h-12 border-b border-border/50 bg-surface flex items-center justify-between px-3 sm:px-4 shrink-0 safe-area-inset-top">
+      <header className="h-11 sm:h-12 border-b border-slate-200 bg-white flex items-center justify-between px-3 sm:px-4 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
               <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
             </div>
-            <span className="font-semibold text-xs sm:text-sm hidden sm:block">DevFlow</span>
+            <span className="font-semibold text-xs sm:text-sm text-slate-900 hidden sm:block">DevFlow</span>
           </div>
 
-          <div className="h-3.5 w-px bg-border/40 hidden sm:block" />
+          <div className="h-3.5 w-px bg-slate-200 hidden sm:block" />
 
-          <span className="text-[11px] sm:text-xs text-muted-foreground truncate max-w-[120px] sm:max-w-[250px]">
+          <span className="text-[11px] sm:text-xs text-slate-500 truncate max-w-[120px] sm:max-w-[250px]">
             {project?.name || 'Loading...'}
           </span>
 
@@ -114,7 +104,7 @@ function WorkspaceContent() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 text-[11px] sm:text-xs gap-1 text-muted-foreground px-2 sm:px-3 hidden sm:flex">
+          <Button variant="ghost" size="sm" className="h-7 text-[11px] sm:text-xs gap-1 text-slate-500 px-2 sm:px-3 hidden sm:flex">
             <Share2 className="w-3 h-3" />
             Share
           </Button>
@@ -125,16 +115,14 @@ function WorkspaceContent() {
         </div>
       </header>
 
-      {/* Desktop layout: Chat | Preview/Code side by side */}
+      {/* Desktop layout */}
       <div className="flex-1 hidden md:flex overflow-hidden">
-        {/* Left: Chat */}
-        <div className="w-[380px] lg:w-[420px] min-w-[320px] border-r border-border/50 flex flex-col shrink-0">
+        <div className="w-[380px] lg:w-[420px] min-w-[320px] border-r border-slate-200 flex flex-col shrink-0">
           <ChatPanel />
         </div>
 
-        {/* Right: Preview or Code */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex items-center border-b border-border/50 bg-surface px-1 shrink-0">
+          <div className="flex items-center border-b border-slate-200 bg-slate-50/50 px-1 shrink-0">
             {[
               { id: 'preview', label: 'Preview', icon: Eye },
               { id: 'code', label: 'Code', icon: Code2 },
@@ -146,9 +134,7 @@ function WorkspaceContent() {
                   onClick={() => setRightPanel(tab.id)}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors cursor-pointer relative',
-                    rightPanel === tab.id
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                    rightPanel === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -156,7 +142,7 @@ function WorkspaceContent() {
                   {rightPanel === tab.id && (
                     <motion.div
                       layoutId="desktop-tab"
-                      className="absolute bottom-0 left-2 right-2 h-[2px] bg-primary rounded-full"
+                      className="absolute bottom-0 left-2 right-2 h-[2px] bg-red-500 rounded-full"
                     />
                   )}
                 </button>
@@ -169,7 +155,7 @@ function WorkspaceContent() {
         </div>
       </div>
 
-      {/* Mobile layout: Single panel with bottom tabs */}
+      {/* Mobile layout */}
       <div className="flex-1 flex flex-col md:hidden overflow-hidden">
         <div className="flex-1 overflow-hidden">
           {mobileTab === 'chat' && <ChatPanel />}
@@ -177,8 +163,7 @@ function WorkspaceContent() {
           {mobileTab === 'code' && <CodeEditor />}
         </div>
 
-        {/* Mobile bottom tab bar */}
-        <nav className="border-t border-border/50 bg-surface flex items-center shrink-0 safe-area-inset-bottom">
+        <nav className="border-t border-slate-200 bg-white flex items-center shrink-0">
           {[
             { id: 'chat', label: 'Chat', icon: MessageSquare },
             { id: 'preview', label: 'Preview', icon: Eye },
@@ -192,7 +177,7 @@ function WorkspaceContent() {
                 onClick={() => setMobileTab(tab.id)}
                 className={cn(
                   'flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors cursor-pointer active:scale-95',
-                  active ? 'text-primary' : 'text-muted-foreground'
+                  active ? 'text-red-500' : 'text-slate-400'
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -202,6 +187,7 @@ function WorkspaceContent() {
           })}
         </nav>
       </div>
+
       <DeployPanel open={deployOpen} onClose={() => setDeployOpen(false)} />
     </div>
   )
