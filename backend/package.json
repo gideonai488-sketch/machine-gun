@@ -1,0 +1,21 @@
+{
+  "name": "devflow-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DevFlow AI IDE Backend",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
+    "@e2b/code-interpreter": "^2.4.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "e2b": "^2.19.0",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3",
+    "uuid": "^13.0.0"
+  }
+}
