@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import ChatPanel from '@/components/workspace/ChatPanel'
 import PreviewPanel from '@/components/workspace/PreviewPanel'
 import CodeEditor from '@/components/workspace/CodeEditor'
+import DeployPanel from '@/components/workspace/DeployPanel'
 
 const STATUS_CONFIG = {
   idle: { label: 'Ready', variant: 'secondary' },
@@ -45,6 +46,7 @@ function WorkspaceContent() {
   } = useProject()
 
   const [mobileTab, setMobileTab] = useState('chat')
+  const [deployOpen, setDeployOpen] = useState(false)
 
   const status = STATUS_CONFIG[project?.status || buildStatus] || STATUS_CONFIG.idle
 
@@ -116,7 +118,7 @@ function WorkspaceContent() {
             <Share2 className="w-3 h-3" />
             Share
           </Button>
-          <Button size="sm" className="h-7 text-[11px] sm:text-xs gap-1 px-2.5 sm:px-3">
+          <Button size="sm" className="h-7 text-[11px] sm:text-xs gap-1 px-2.5 sm:px-3" onClick={() => setDeployOpen(true)}>
             <Rocket className="w-3 h-3" />
             <span className="hidden sm:inline">Deploy</span>
           </Button>
@@ -200,6 +202,7 @@ function WorkspaceContent() {
           })}
         </nav>
       </div>
+      <DeployPanel open={deployOpen} onClose={() => setDeployOpen(false)} />
     </div>
   )
 }

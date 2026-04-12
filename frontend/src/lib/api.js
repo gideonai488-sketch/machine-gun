@@ -55,17 +55,26 @@ export const api = {
     })
   },
 
-  triggerBuild(projectId, platform) {
-    return request(`/api/projects/${projectId}/build`, {
+  deployWeb(projectId) {
+    return request(`/api/projects/${projectId}/deploy/web`, {
       method: 'POST',
-      body: JSON.stringify({ platform }),
     })
   },
 
-  publishApp(projectId, platform, track) {
-    return request(`/api/projects/${projectId}/publish`, {
+  deployMobile(projectId, platform, track) {
+    return request(`/api/projects/${projectId}/deploy/mobile`, {
       method: 'POST',
       body: JSON.stringify({ platform, track }),
+    })
+  },
+
+  getBuildStatus(projectId, buildId) {
+    return request(`/api/projects/${projectId}/build/${buildId}`)
+  },
+
+  cancelBuild(projectId, buildId) {
+    return request(`/api/projects/${projectId}/build/${buildId}/cancel`, {
+      method: 'POST',
     })
   },
 }
