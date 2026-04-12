@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_BACKEND_URL || ''
 
 async function request(path, options = {}) {
   if (!API_URL) {
-    throw new Error('Backend not connected. Set VITE_BACKEND_URL.')
+    throw new Error('Coming soon')
   }
 
   const token = localStorage.getItem('mg_token')

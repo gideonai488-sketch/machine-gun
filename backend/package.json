@@ -1,9 +1,12 @@
 {
-  "name": "devflow-backend",
+  "name": "machine-gun-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "DevFlow AI IDE Backend",
+  "description": "Machine Gun AI IDE Backend",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"

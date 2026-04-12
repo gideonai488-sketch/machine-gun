@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
 
   function loginWithGithub() {
     if (!API_URL) {
-      alert('Backend not configured. Set VITE_BACKEND_URL environment variable.')
+      window.location.href = '/coming-soon'
       return
     }
     window.location.href = `${API_URL}/api/auth/github`
