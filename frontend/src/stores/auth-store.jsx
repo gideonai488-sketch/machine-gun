@@ -11,7 +11,15 @@ export function AuthProvider({ children }) {
   const fetchUser = useCallback(async () => {
     try {
       const token = localStorage.getItem('mg_token')
-      if (!token) { setLoading(false); return }
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      if (!API_URL) {
+        setLoading(false)
+        return
+      }
 
       const res = await fetch(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -24,6 +32,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.error('Auth check failed:', err)
+      localStorage.removeItem('mg_token')
     } finally {
       setLoading(false)
     }
@@ -42,6 +51,10 @@ export function AuthProvider({ children }) {
   }, [fetchUser])
 
   function loginWithGithub() {
+    if (!API_URL) {
+      alert('Backend not configured. Set VITE_BACKEND_URL environment variable.')
+      return
+    }
     window.location.href = `${API_URL}/api/auth/github`
   }
 

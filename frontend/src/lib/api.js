@@ -1,9 +1,16 @@
 const API_URL = import.meta.env.VITE_BACKEND_URL || ''
 
 async function request(path, options = {}) {
+  if (!API_URL) {
+    throw new Error('Backend not connected. Set VITE_BACKEND_URL.')
+  }
+
+  const token = localStorage.getItem('mg_token')
+
   const res = await fetch(`${API_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...options,
