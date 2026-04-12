@@ -1,44 +1,43 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #060811;
-  --color-foreground: #e2e8f0;
-  --color-muted: #1e293b;
-  --color-muted-foreground: #94a3b8;
-  --color-card: #0f1629;
-  --color-card-foreground: #e2e8f0;
-  --color-border: #1e293b;
-  --color-input: #1e293b;
-  --color-ring: #6366f1;
-  --color-primary: #6366f1;
+  --color-background: #0a0a0f;
+  --color-foreground: #e4e4e7;
+  --color-muted: #18181b;
+  --color-muted-foreground: #71717a;
+  --color-card: #111114;
+  --color-card-foreground: #e4e4e7;
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #7c3aed;
+  --color-primary: #7c3aed;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #1e293b;
-  --color-secondary-foreground: #e2e8f0;
-  --color-accent: #8b5cf6;
+  --color-secondary: #18181b;
+  --color-secondary-foreground: #e4e4e7;
+  --color-accent: #a78bfa;
   --color-accent-foreground: #ffffff;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
+  --color-surface: #0f0f14;
 
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
-}
-
-@font-face {
-  font-family: 'DM Sans';
-  font-style: normal;
-  font-weight: 100 1000;
-  font-display: swap;
-  src: url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+  --radius-xl: 1rem;
 }
 
 * {
   border-color: var(--color-border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -47,11 +46,12 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -59,10 +59,22 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-muted);
+  background: #27272a;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #3f3f46;
+}
+
+@supports (height: 100dvh) {
+  .h-screen-safe {
+    height: 100dvh;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .h-screen-safe {
+    height: 100vh;
+  }
 }

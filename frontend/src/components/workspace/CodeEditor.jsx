@@ -8,6 +8,7 @@ import {
   File,
   Folder,
   FolderOpen,
+  PanelLeft,
 } from 'lucide-react'
 import { useProject } from '@/stores/project-store'
 import { api } from '@/lib/api'
@@ -41,26 +42,26 @@ function FileNode({ node, depth = 0, onSelect, activeFile }) {
       <button
         onClick={() => isDir ? setExpanded(!expanded) : onSelect(node.path)}
         className={cn(
-          'flex items-center gap-1.5 w-full px-2 py-[3px] text-[11px] hover:bg-muted/50 transition-colors cursor-pointer',
+          'flex items-center gap-1.5 w-full px-2 py-1 sm:py-[3px] text-xs hover:bg-muted/30 transition-colors cursor-pointer active:bg-muted/50',
           isActive && 'bg-primary/10 text-primary'
         )}
-        style={{ paddingLeft: `${depth * 14 + 8}px` }}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {isDir ? (
           <>
             {expanded
-              ? <ChevronDown className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-              : <ChevronRight className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+              ? <ChevronDown className="w-3 h-3 text-muted-foreground/50 shrink-0" />
+              : <ChevronRight className="w-3 h-3 text-muted-foreground/50 shrink-0" />
             }
             {expanded
-              ? <FolderOpen className="w-3.5 h-3.5 text-primary/60 shrink-0" />
-              : <Folder className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+              ? <FolderOpen className="w-3.5 h-3.5 text-primary/50 shrink-0" />
+              : <Folder className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
             }
           </>
         ) : (
           <>
             <span className="w-3 shrink-0" />
-            <File className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+            <File className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
           </>
         )}
         <span className="truncate">{node.name}</span>
@@ -85,6 +86,7 @@ export default function CodeEditor() {
     setActiveFile, setFileContent, setFiles,
   } = useProject()
 
+  const [showTree, setShowTree] = useState(false)
   const saveTimeoutRef = useRef(null)
 
   const loadFiles = useCallback(async () => {
@@ -122,22 +124,38 @@ export default function CodeEditor() {
     }, 1000)
   }
 
+  function handleFileSelect(path) {
+    openFile(path)
+    setShowTree(false)
+  }
+
   return (
-    <div className="h-full flex">
-      {/* File tree sidebar */}
-      <div className="w-56 border-r border-border/60 bg-card/30 flex flex-col shrink-0 overflow-hidden">
-        <div className="px-3 py-2 border-b border-border/40">
-          <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">Files</span>
+    <div className="h-full flex relative">
+      {/* File tree — sidebar on desktop, overlay on mobile */}
+      <div className={cn(
+        'border-r border-border/40 bg-surface flex flex-col shrink-0 overflow-hidden transition-all',
+        showTree
+          ? 'absolute inset-0 z-20 w-full sm:relative sm:w-52 lg:w-56'
+          : 'hidden sm:flex sm:w-52 lg:w-56'
+      )}>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border/30">
+          <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider">Files</span>
+          <button
+            onClick={() => setShowTree(false)}
+            className="p-1 rounded hover:bg-muted/30 sm:hidden cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto py-1">
+        <div className="flex-1 overflow-y-auto py-1 overscroll-contain">
           {files.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground/50 px-3 py-4 text-center">No files yet</p>
+            <p className="text-[11px] text-muted-foreground/40 px-3 py-4 text-center">No files yet</p>
           ) : (
             files.map((node) => (
               <FileNode
                 key={node.path}
                 node={node}
-                onSelect={openFile}
+                onSelect={handleFileSelect}
                 activeFile={activeFile}
               />
             ))
@@ -147,30 +165,35 @@ export default function CodeEditor() {
 
       {/* Editor area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {openFiles.length > 0 && (
-          <div className="flex items-center border-b border-border/40 bg-card/30 overflow-x-auto shrink-0">
-            {openFiles.map((filePath) => (
-              <div
-                key={filePath}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 text-[11px] border-r border-border/30 cursor-pointer transition-colors shrink-0 group',
-                  activeFile === filePath
-                    ? 'bg-background text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                )}
-                onClick={() => setActiveFile(filePath)}
+        {/* Tab bar */}
+        <div className="flex items-center border-b border-border/30 bg-surface overflow-x-auto shrink-0 no-scrollbar">
+          <button
+            onClick={() => setShowTree(!showTree)}
+            className="p-2 sm:hidden text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+          {openFiles.map((filePath) => (
+            <div
+              key={filePath}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 text-[11px] border-r border-border/20 cursor-pointer transition-colors shrink-0 group',
+                activeFile === filePath
+                  ? 'bg-background text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/20'
+              )}
+              onClick={() => setActiveFile(filePath)}
+            >
+              <span>{getFileName(filePath)}</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); closeFile(filePath) }}
+                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-muted/40 rounded transition-all cursor-pointer"
               >
-                <span>{getFileName(filePath)}</span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); closeFile(filePath) }}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-muted rounded transition-all cursor-pointer"
-                >
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                <X className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          ))}
+        </div>
 
         <div className="flex-1">
           {activeFile ? (
@@ -198,9 +221,9 @@ export default function CodeEditor() {
             />
           ) : (
             <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <FileCode className="w-10 h-10 text-muted-foreground/20 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground/50">Select a file to edit</p>
+              <div className="text-center px-6">
+                <FileCode className="w-10 h-10 text-muted-foreground/15 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground/40">Select a file to edit</p>
               </div>
             </div>
           )}

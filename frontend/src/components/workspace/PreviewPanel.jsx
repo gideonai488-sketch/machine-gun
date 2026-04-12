@@ -5,7 +5,6 @@ import {
   Tablet,
   ExternalLink,
   RefreshCw,
-  RotateCcw,
 } from 'lucide-react'
 import { useProject } from '@/stores/project-store'
 import { cn } from '@/lib/utils'
@@ -19,18 +18,15 @@ const DEVICES = [
 export default function PreviewPanel() {
   const { previewUrl, previewMode, setPreviewMode } = useProject()
   const [refreshKey, setRefreshKey] = useState(0)
-  const [url, setUrl] = useState('')
 
   const device = DEVICES.find((d) => d.id === previewMode) || DEVICES[0]
   const isFullWidth = previewMode === 'desktop'
 
-  const displayUrl = previewUrl || url
-
   return (
     <div className="h-full flex flex-col bg-background">
       {/* URL bar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60 bg-card/50 shrink-0">
-        <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5">
+      <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 border-b border-border/50 bg-surface shrink-0">
+        <div className="hidden sm:flex items-center gap-0.5 bg-muted/40 rounded-lg p-0.5">
           {DEVICES.map((d) => {
             const Icon = d.icon
             return (
@@ -51,27 +47,25 @@ export default function PreviewPanel() {
           })}
         </div>
 
-        <div className="flex-1 flex items-center bg-muted/30 rounded-lg border border-border/40 px-3 h-7">
-          <span className="text-xs text-muted-foreground truncate">
-            {displayUrl || 'Preview will appear when your app is running'}
+        <div className="flex-1 flex items-center bg-muted/20 rounded-lg border border-border/30 px-2.5 sm:px-3 h-7">
+          <span className="text-[11px] sm:text-xs text-muted-foreground truncate">
+            {previewUrl || 'Preview will appear when your app is running'}
           </span>
         </div>
 
         <button
           onClick={() => setRefreshKey((k) => k + 1)}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
-          title="Refresh"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors cursor-pointer active:scale-95"
         >
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
 
-        {displayUrl && (
+        {previewUrl && (
           <a
-            href={displayUrl}
+            href={previewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            title="Open in new tab"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
@@ -79,12 +73,14 @@ export default function PreviewPanel() {
       </div>
 
       {/* Preview area */}
-      <div className="flex-1 bg-[#1a1a2e] flex items-center justify-center overflow-hidden p-4">
-        {displayUrl ? (
+      <div className="flex-1 bg-[#09090b] flex items-center justify-center overflow-hidden p-0 sm:p-3">
+        {previewUrl ? (
           <div
             className={cn(
-              'bg-white rounded-lg overflow-hidden shadow-2xl shadow-black/40 transition-all duration-300',
-              !isFullWidth && 'border border-border/20'
+              'bg-white overflow-hidden transition-all duration-300',
+              isFullWidth
+                ? 'w-full h-full'
+                : 'rounded-lg shadow-2xl shadow-black/50 border border-border/10',
             )}
             style={{
               width: isFullWidth ? '100%' : device.width,
@@ -95,21 +91,21 @@ export default function PreviewPanel() {
           >
             <iframe
               key={refreshKey}
-              src={displayUrl}
+              src={previewUrl}
               className="w-full h-full border-0"
               title="App Preview"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
             />
           </div>
         ) : (
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-4">
-              <Monitor className="w-7 h-7 text-muted-foreground/40" />
+          <div className="text-center px-6">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <Monitor className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground/30" />
             </div>
-            <p className="text-sm text-muted-foreground/60 font-medium">
-              Your app preview will appear here
+            <p className="text-sm text-muted-foreground/50 font-medium">
+              Your app will appear here
             </p>
-            <p className="text-xs text-muted-foreground/40 mt-1">
+            <p className="text-xs text-muted-foreground/30 mt-1">
               Start a conversation to build your app
             </p>
           </div>
