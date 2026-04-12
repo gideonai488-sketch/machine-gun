@@ -245,7 +245,7 @@ export async function handleChat(projectId, userMessage, io, socketRoom) {
       io.to(socketRoom).emit('chat:stream', data)
     }
 
-    const project = getProject(projectId)
+    const project = await getProject(projectId)
     const contextPrefix = project ? buildContextPrefix(project) : ''
 
     const enrichedMessage = contextPrefix

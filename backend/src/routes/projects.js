@@ -13,7 +13,7 @@ projectRouter.post('/', async (req, res) => {
       return res.status(400).json({ message: 'prompt and framework are required' })
     }
 
-    const project = projectStore.createProject({ prompt, framework })
+    const project = await projectStore.createProject({ prompt, framework })
 
     const io = req.app.get('io')
 
@@ -51,12 +51,13 @@ projectRouter.post('/', async (req, res) => {
   }
 })
 
-projectRouter.get('/', (_req, res) => {
-  res.json(projectStore.listProjects())
+projectRouter.get('/', async (_req, res) => {
+  const projects = await projectStore.listProjects()
+  res.json(projects)
 })
 
-projectRouter.get('/:id', (req, res) => {
-  const project = projectStore.getProject(req.params.id)
+projectRouter.get('/:id', async (req, res) => {
+  const project = await projectStore.getProject(req.params.id)
   if (!project) {
     return res.status(404).json({ message: 'Project not found' })
   }
@@ -65,7 +66,7 @@ projectRouter.get('/:id', (req, res) => {
 
 projectRouter.post('/:id/chat', async (req, res) => {
   try {
-    const project = projectStore.getProject(req.params.id)
+    const project = await projectStore.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }
@@ -87,7 +88,7 @@ projectRouter.post('/:id/chat', async (req, res) => {
 
 projectRouter.get('/:id/files', async (req, res) => {
   try {
-    const project = projectStore.getProject(req.params.id)
+    const project = await projectStore.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }
@@ -103,7 +104,7 @@ projectRouter.get('/:id/files', async (req, res) => {
 
 projectRouter.get('/:id/files/content', async (req, res) => {
   try {
-    const project = projectStore.getProject(req.params.id)
+    const project = await projectStore.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }
@@ -122,7 +123,7 @@ projectRouter.get('/:id/files/content', async (req, res) => {
 
 projectRouter.put('/:id/files/content', async (req, res) => {
   try {
-    const project = projectStore.getProject(req.params.id)
+    const project = await projectStore.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }
@@ -147,7 +148,7 @@ projectRouter.put('/:id/files/content', async (req, res) => {
 
 projectRouter.post('/:id/build', async (req, res) => {
   try {
-    const project = projectStore.getProject(req.params.id)
+    const project = await projectStore.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }
@@ -171,7 +172,7 @@ projectRouter.post('/:id/build', async (req, res) => {
 
 projectRouter.post('/:id/publish', async (req, res) => {
   try {
-    const project = projectStore.getProject(req.params.id)
+    const project = await projectStore.getProject(req.params.id)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }

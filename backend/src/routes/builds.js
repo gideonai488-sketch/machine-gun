@@ -6,7 +6,7 @@ import * as projectStore from '../store/projects.js'
 export const buildRouter = Router()
 
 buildRouter.post('/:projectId/deploy/web', async (req, res) => {
-  const project = projectStore.getProject(req.params.projectId)
+  const project = await projectStore.getProject(req.params.projectId)
   if (!project) return res.status(404).json({ message: 'Project not found' })
 
   const io = req.app.get('io')
@@ -26,7 +26,7 @@ buildRouter.post('/:projectId/deploy/web', async (req, res) => {
 })
 
 buildRouter.post('/:projectId/deploy/mobile', async (req, res) => {
-  const project = projectStore.getProject(req.params.projectId)
+  const project = await projectStore.getProject(req.params.projectId)
   if (!project) return res.status(404).json({ message: 'Project not found' })
 
   const { platform, track } = req.body

@@ -3,7 +3,7 @@ import * as codemagic from './codemagic.js'
 import { updateProject, getProject } from '../store/projects.js'
 
 export async function deployWeb(projectId, { emitActivity, emitStatus }) {
-  const project = getProject(projectId)
+  const project = await getProject(projectId)
   if (!project) throw new Error('Project not found')
 
   const framework = project.framework
@@ -127,7 +127,7 @@ export async function deployWeb(projectId, { emitActivity, emitStatus }) {
 }
 
 export async function buildAndPublishMobile(projectId, { platform, track, emitActivity, emitStatus }) {
-  const project = getProject(projectId)
+  const project = await getProject(projectId)
   if (!project) throw new Error('Project not found')
 
   emitActivity({ id: `mobile-init`, type: 'build', message: `Preparing ${platform} build...`, status: 'running' })

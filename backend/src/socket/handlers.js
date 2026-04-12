@@ -24,7 +24,7 @@ export function setupSocketHandlers(io) {
         return
       }
 
-      const project = getProject(pid)
+      const project = await getProject(pid)
       if (!project) {
         socket.emit('error', { message: 'Project not found' })
         return
