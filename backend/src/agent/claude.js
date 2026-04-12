@@ -8,22 +8,89 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-const SYSTEM_PROMPT = `You are Machine Gun AI, an expert software engineer powering a cloud IDE. Users describe what they want to build and you build it for them.
+const SYSTEM_PROMPT = `You are Machine Gun AI — a world-class software engineer that builds complete, production-quality applications. You are the best coding agent ever built. You think deeply, plan carefully, and execute flawlessly.
 
-You have a full Linux cloud computer with shell access. The project lives at /home/user/project. The user NEVER sees the terminal, file system, or any raw output — they only see a chat and a live preview of the running app.
+## YOUR ENVIRONMENT
+- You have a full Linux cloud computer with shell access.
+- The project lives at /home/user/project.
+- The user sees ONLY a chat and a live preview. They NEVER see terminal, file system, or raw output.
+- When you edit code, the preview updates automatically via hot reload.
 
-Rules:
-- Write production-quality, complete code. Never use placeholder comments.
-- Always implement actual working logic.
-- Follow best practices for the framework.
-- When starting a new project, create the full file structure and all configs.
-- Install dependencies before importing them.
-- If a command fails, read the error and fix it automatically without telling the user about raw errors.
-- Keep your chat messages brief and friendly — tell the user what you're building, not implementation details.
-- When writing files, always provide complete file content.
-- After making changes, make sure the dev server is running so the preview updates.
-- Never show raw terminal output, file paths, or error logs to the user. Summarize in plain english.
-- You can run multiple tools in sequence to complete a task.`
+## HOW YOU THINK (this is what makes you smarter than other agents)
+
+### 1. UNDERSTAND BEFORE ACTING
+- Before writing ANY code, read the existing codebase. Call list_files and read_file on key files.
+- Understand the project structure, existing patterns, naming conventions, and dependencies.
+- Never blindly overwrite a file. Always read it first, understand it, then write the improved version.
+
+### 2. PLAN BEFORE CODING
+- For any non-trivial request, briefly tell the user your plan BEFORE starting.
+- Example: "I'll add a dark mode toggle. Here's my plan: 1) Add a theme context, 2) Update the header with a toggle button, 3) Update the CSS variables. Let me start."
+- This builds trust and lets the user course-correct early.
+
+### 3. WRITE COMPLETE, PRODUCTION CODE
+- Never use placeholder comments like "// TODO", "// add logic here", "// implement later".
+- Every function must have real, working logic.
+- Use proper error handling, loading states, edge cases.
+- Follow the existing code style in the project.
+- Use modern patterns: hooks (React), async/await, proper typing.
+
+### 4. AUTOMATIC ERROR RECOVERY
+- If a command fails, READ the error carefully.
+- Diagnose the root cause — don't just retry the same command.
+- Fix the underlying issue (missing dependency, typo, wrong import, version conflict).
+- Then retry. You can retry up to 3 times per error before telling the user.
+- Never show raw error output to the user. Summarize what went wrong in plain English.
+
+### 5. MANAGE THE DEV SERVER
+- After making code changes, check if the dev server is running.
+- If it crashed, restart it.
+- The preview only works when the dev server is running.
+
+### 6. FILE MANAGEMENT
+- Always write COMPLETE file contents — never partial updates or diffs.
+- Create parent directories automatically (your write_file tool handles this).
+- When creating a new feature, also update any related files (routes, imports, exports, index files).
+
+## COMMUNICATION STYLE
+- Be brief, warm, and confident. Like a senior developer explaining to a friend.
+- Tell the user WHAT you're building, not HOW at a technical level.
+- Good: "I'm adding a search bar with autocomplete to your header."
+- Bad: "I'm creating a SearchBar component with a useRef hook and debounced onChange handler that queries the /api/search endpoint."
+- After making changes, confirm what was done: "Done! Your app now has a dark mode toggle in the header. Try it out in the preview."
+- If something goes wrong, be honest and brief: "Hit a small issue with the image loading. Fixed it, should be working now."
+
+## FRAMEWORK-SPECIFIC KNOWLEDGE
+
+### React + Vite
+- Use functional components with hooks
+- Use Tailwind CSS for styling (already configured)
+- Import patterns: named imports from libraries, default imports for components
+- Dev server: npm run dev (port 5173)
+
+### Flutter
+- Use StatelessWidget/StatefulWidget patterns
+- Use Material Design widgets
+- State management: setState for simple, Provider/Riverpod for complex
+- Dev server: flutter run -d web-server (port 5173)
+
+### React Native
+- Use functional components with hooks
+- Use React Native core components (View, Text, ScrollView, etc.)
+- Navigation: React Navigation
+- Dev server: expo start --web (port 5173)
+
+## CRITICAL RULES
+1. NEVER show raw terminal output, file paths, or stack traces to the user.
+2. NEVER write placeholder code. Every line must be real, working logic.
+3. ALWAYS read existing files before modifying them.
+4. ALWAYS install dependencies before importing them.
+5. ALWAYS ensure the dev server is running after making changes.
+6. When the user asks for a NEW project, scaffold it completely — all files, configs, dependencies.
+7. When the user asks to MODIFY an existing project, understand the codebase first, then make surgical changes.`
+
+const MAX_CONVERSATION_MESSAGES = 40
+const MAX_ERROR_RETRIES = 3
 
 const projectLocks = new Map()
 
@@ -65,7 +132,7 @@ function humanizeActivity(toolName, toolInput) {
     case 'list_files':
       return { message: 'Scanning project files', type: 'file_read' }
     case 'search_code':
-      return { message: `Searching codebase`, type: 'file_read' }
+      return { message: 'Searching codebase', type: 'file_read' }
     case 'trigger_build':
       return { message: `Building for ${toolInput.platform}`, type: 'build' }
     case 'publish_app':
@@ -88,7 +155,7 @@ async function executeTool(projectId, toolName, toolInput) {
     case 'write_file': {
       try {
         await sandboxManager.writeFile(projectId, toolInput.path, toolInput.content)
-        return `Successfully wrote ${toolInput.path}`
+        return `Successfully wrote ${toolInput.path} (${toolInput.content.split('\n').length} lines)`
       } catch (err) {
         return `Error: ${err.message}`
       }
@@ -97,7 +164,10 @@ async function executeTool(projectId, toolName, toolInput) {
     case 'run_command': {
       try {
         const result = await sandboxManager.runCommand(projectId, toolInput.command, 120000)
-        return `Exit code: ${result.exitCode}\nStdout: ${result.stdout}\nStderr: ${result.stderr}`
+        const output = []
+        if (result.stdout) output.push(`stdout:\n${result.stdout}`)
+        if (result.stderr) output.push(`stderr:\n${result.stderr}`)
+        return `Exit code: ${result.exitCode}\n${output.join('\n')}`
       } catch (err) {
         return `Error running command: ${err.message}`
       }
@@ -130,29 +200,14 @@ async function executeTool(projectId, toolName, toolInput) {
 
     case 'trigger_build': {
       try {
-        const project = getProject(projectId)
-        const framework = project?.framework || 'react-vite'
-
         if (!process.env.CODEMAGIC_API_TOKEN || !process.env.CODEMAGIC_APP_ID) {
-          return `Build for ${toolInput.platform} is ready to go. To enable cloud builds, connect your Codemagic account in Settings with CODEMAGIC_API_TOKEN and CODEMAGIC_APP_ID.`
+          return `Build for ${toolInput.platform} is ready. To enable cloud builds, connect Codemagic in Settings.`
         }
-
-        const workflowMap = {
-          android: 'android-release',
-          ios: 'ios-release',
-          web: 'web-release',
-        }
-
+        const workflowMap = { android: 'android-release', ios: 'ios-release', web: 'web-release' }
         const workflowId = workflowMap[toolInput.platform]
         if (!workflowId) return `Unknown platform: ${toolInput.platform}`
-
-        const result = await codemagic.startBuild({
-          appId: process.env.CODEMAGIC_APP_ID,
-          workflowId,
-          branch: 'main',
-        })
-
-        return `Build started for ${toolInput.platform}. Build ID: ${result.buildId}. Codemagic is now building your ${toolInput.platform === 'android' ? 'AAB' : toolInput.platform === 'ios' ? 'IPA' : 'web'} artifact. You can track progress in the Codemagic dashboard.`
+        const result = await codemagic.startBuild({ appId: process.env.CODEMAGIC_APP_ID, workflowId, branch: 'main' })
+        return `Build started for ${toolInput.platform}. Build ID: ${result.buildId}.`
       } catch (err) {
         return `Failed to trigger build: ${err.message}`
       }
@@ -161,31 +216,18 @@ async function executeTool(projectId, toolName, toolInput) {
     case 'publish_app': {
       try {
         if (!process.env.CODEMAGIC_API_TOKEN || !process.env.CODEMAGIC_APP_ID) {
-          return `Publishing to ${toolInput.platform} (${toolInput.track}) is ready to go. To enable automatic publishing, connect your Codemagic account and configure store credentials (Google Play service account or App Store Connect API key) in the Codemagic dashboard.`
+          return `Publishing to ${toolInput.platform} (${toolInput.track}) is ready. Connect Codemagic and store credentials in Settings.`
         }
-
-        const workflowMap = {
-          android: 'android-release',
-          ios: 'ios-release',
-        }
-
+        const workflowMap = { android: 'android-release', ios: 'ios-release' }
         const workflowId = workflowMap[toolInput.platform]
         if (!workflowId) return `Unknown platform: ${toolInput.platform}`
-
-        const environment = {
-          variables: {
-            PUBLISH_TRACK: toolInput.track,
-          },
-        }
-
         const result = await codemagic.startBuild({
           appId: process.env.CODEMAGIC_APP_ID,
           workflowId,
           branch: 'main',
-          environment,
+          environment: { variables: { PUBLISH_TRACK: toolInput.track } },
         })
-
-        return `Publish build started for ${toolInput.platform} on track "${toolInput.track}". Build ID: ${result.buildId}. Codemagic will build and publish to ${toolInput.platform === 'android' ? 'Google Play' : 'App Store Connect'} automatically.`
+        return `Publish build started for ${toolInput.platform} (${toolInput.track}). Build ID: ${result.buildId}.`
       } catch (err) {
         return `Failed to publish: ${err.message}`
       }
@@ -194,6 +236,29 @@ async function executeTool(projectId, toolName, toolInput) {
     default:
       return `Unknown tool: ${toolName}`
   }
+}
+
+function buildContextPrefix(project) {
+  const parts = [`Project framework: ${project.framework}`]
+  if (project.previewUrl) parts.push(`Preview URL: ${project.previewUrl}`)
+  parts.push(`Project name: ${project.name}`)
+  return parts.join('\n')
+}
+
+function trimConversation(messages) {
+  if (messages.length <= MAX_CONVERSATION_MESSAGES) return messages
+
+  const firstUserMessage = messages[0]
+  const recentMessages = messages.slice(-MAX_CONVERSATION_MESSAGES + 2)
+
+  return [
+    firstUserMessage,
+    {
+      role: 'assistant',
+      content: '[Earlier conversation trimmed for context window. The project has been built and modified based on previous messages. Read the current codebase to understand the current state.]',
+    },
+    ...recentMessages,
+  ]
 }
 
 export async function handleChat(projectId, userMessage, io, socketRoom) {
@@ -208,23 +273,43 @@ export async function handleChat(projectId, userMessage, io, socketRoom) {
       io.to(socketRoom).emit('chat:stream', data)
     }
 
+    const project = getProject(projectId)
+    const contextPrefix = project ? buildContextPrefix(project) : ''
+
+    const enrichedMessage = contextPrefix
+      ? `[Context: ${contextPrefix}]\n\nUser message: ${userMessage}`
+      : userMessage
+
     addChatMessage(projectId, { role: 'user', content: userMessage })
 
     const history = getChatHistory(projectId)
-    const messages = history.map((msg) => ({
+    let messages = history.map((msg) => ({
       role: msg.role,
       content: msg.content,
     }))
+
+    if (messages.length > 0) {
+      messages[messages.length - 1] = {
+        role: 'user',
+        content: enrichedMessage,
+      }
+    }
+
+    messages = trimConversation(messages)
 
     emitChatStream({ type: 'start' })
 
     let fullResponse = ''
     let continueLoop = true
+    let loopCount = 0
+    const maxLoops = 25
 
-    while (continueLoop) {
+    while (continueLoop && loopCount < maxLoops) {
+      loopCount++
+
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
+        max_tokens: 16384,
         system: SYSTEM_PROMPT,
         tools: AGENT_TOOLS,
         messages,
@@ -255,13 +340,15 @@ export async function handleChat(projectId, userMessage, io, socketRoom) {
           })
 
           const result = await executeTool(projectId, block.name, block.input)
-          const succeeded = !result.startsWith?.('Error')
+
+          const isError = result.startsWith?.('Error') ||
+            (result.includes?.('Exit code:') && !result.includes('Exit code: 0'))
 
           emitActivity({
             id: activityId,
             type: actType,
             message: actMsg,
-            status: succeeded ? 'success' : 'error',
+            status: isError ? 'error' : 'success',
             update: true,
           })
 
@@ -269,18 +356,12 @@ export async function handleChat(projectId, userMessage, io, socketRoom) {
             type: 'tool_result',
             tool_use_id: block.id,
             content: typeof result === 'string' ? result : JSON.stringify(result),
+            is_error: isError,
           })
         }
 
-        messages.push({
-          role: 'assistant',
-          content: response.content,
-        })
-
-        messages.push({
-          role: 'user',
-          content: toolResults,
-        })
+        messages.push({ role: 'assistant', content: response.content })
+        messages.push({ role: 'user', content: toolResults })
 
         continueLoop = true
       }
