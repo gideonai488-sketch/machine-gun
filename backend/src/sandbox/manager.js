@@ -14,6 +14,8 @@ export async function createSandbox(projectId, framework) {
 
   activeSandboxes.set(projectId, sandbox)
 
+  await sandbox.commands.run('mkdir -p /home/user/project', { timeoutMs: 5000 })
+
   await initializeSandbox(sandbox, framework)
 
   return sandbox
@@ -21,16 +23,31 @@ export async function createSandbox(projectId, framework) {
 
 async function initializeSandbox(sandbox, framework) {
   switch (framework) {
-    case 'flutter':
+    case 'react-vite': {
+      await sandbox.commands.run(
+        'cd /home/user/project && npm create vite@latest . -- --template react -y',
+        { timeoutMs: 60000 }
+      )
+      await sandbox.commands.run(
+        'cd /home/user/project && npm install',
+        { timeoutMs: 120000 }
+      )
       break
-    case 'react-vite':
-      await sandbox.commands.run('mkdir -p /home/user/project && cd /home/user/project && npm create vite@latest . -- --template react -y', { timeoutMs: 60000 })
-      await sandbox.commands.run('cd /home/user/project && npm install', { timeoutMs: 120000 })
+    }
+    case 'flutter': {
+      await sandbox.commands.run(
+        'cd /home/user && flutter create project --org com.devflow --platforms web,android,ios',
+        { timeoutMs: 120000 }
+      )
       break
-    case 'react-native':
+    }
+    case 'react-native': {
+      await sandbox.commands.run(
+        'cd /home/user/project && npx react-native@latest init DevFlowApp --directory . --skip-git-init',
+        { timeoutMs: 120000 }
+      )
       break
-    default:
-      await sandbox.commands.run('mkdir -p /home/user/project', { timeoutMs: 10000 })
+    }
   }
 }
 
@@ -59,10 +76,8 @@ export async function writeFile(projectId, path, content) {
   if (!sandbox) throw new Error('No sandbox found for project')
 
   const fullPath = path.startsWith('/') ? path : `/home/user/project/${path}`
-
   const dir = fullPath.substring(0, fullPath.lastIndexOf('/'))
   await sandbox.commands.run(`mkdir -p "${dir}"`, { timeoutMs: 5000 })
-
   await sandbox.files.write(fullPath, content)
 }
 
@@ -71,8 +86,7 @@ export async function readFile(projectId, path) {
   if (!sandbox) throw new Error('No sandbox found for project')
 
   const fullPath = path.startsWith('/') ? path : `/home/user/project/${path}`
-  const content = await sandbox.files.read(fullPath)
-  return content
+  return await sandbox.files.read(fullPath)
 }
 
 export async function listFiles(projectId, path = '/home/user/project') {
@@ -80,7 +94,7 @@ export async function listFiles(projectId, path = '/home/user/project') {
   if (!sandbox) throw new Error('No sandbox found for project')
 
   const result = await sandbox.commands.run(
-    `find "${path}" -maxdepth 4 -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/build/*' -not -path '*/.dart_tool/*' | head -500`,
+    `find "${path}" -maxdepth 4 -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/build/*' -not -path '*/.dart_tool/*' -not -path '*/.gradle/*' -not -path '*/.idea/*' | sort | head -500`,
     { timeoutMs: 10000 }
   )
 
@@ -152,14 +166,19 @@ export async function startDevServer(projectId, framework) {
     case 'flutter':
       command = 'cd /home/user/project && flutter run -d web-server --web-port=5173 --web-hostname=0.0.0.0'
       break
+    case 'react-native':
+      command = 'cd /home/user/project && npx expo start --web --port 5173 --host 0.0.0.0'
+      break
     default:
       command = 'cd /home/user/project && npm start'
   }
 
-  const process = await sandbox.commands.run(command, {
+  await sandbox.commands.run(command, {
     background: true,
     timeoutMs: 60000,
   })
+
+  await new Promise((r) => setTimeout(r, 3000))
 
   const host = sandbox.getHost(5173)
   return `https://${host}`

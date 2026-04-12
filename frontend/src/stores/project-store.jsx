@@ -17,8 +17,19 @@ const initialState = {
 
 function projectReducer(state, action) {
   switch (action.type) {
-    case 'SET_PROJECT':
-      return { ...state, project: action.payload, previewUrl: action.payload?.previewUrl || null }
+    case 'SET_PROJECT': {
+      const proj = action.payload
+      const hydratedMessages = (proj?.chatHistory || []).map((msg, i) => ({
+        ...msg,
+        id: msg.id || `history-${i}`,
+      }))
+      return {
+        ...state,
+        project: proj,
+        previewUrl: proj?.previewUrl || null,
+        chatMessages: hydratedMessages.length > 0 ? hydratedMessages : state.chatMessages,
+      }
+    }
 
     case 'SET_PREVIEW_URL':
       return { ...state, previewUrl: action.payload }
@@ -58,17 +69,6 @@ function projectReducer(state, action) {
 
     case 'ADD_CHAT_MESSAGE':
       return { ...state, chatMessages: [...state.chatMessages, action.payload] }
-
-    case 'UPDATE_LAST_ASSISTANT_MESSAGE': {
-      const msgs = [...state.chatMessages]
-      for (let i = msgs.length - 1; i >= 0; i--) {
-        if (msgs[i].role === 'assistant') {
-          msgs[i] = { ...msgs[i], content: action.payload }
-          break
-        }
-      }
-      return { ...state, chatMessages: msgs }
-    }
 
     case 'APPEND_LAST_ASSISTANT_MESSAGE': {
       const msgs = [...state.chatMessages]
@@ -123,8 +123,6 @@ export function ProjectProvider({ children }) {
     setFileContent: useCallback((path, content) =>
       dispatch({ type: 'SET_FILE_CONTENT', payload: { path, content } }), []),
     addChatMessage: useCallback((m) => dispatch({ type: 'ADD_CHAT_MESSAGE', payload: m }), []),
-    updateLastAssistantMessage: useCallback((c) =>
-      dispatch({ type: 'UPDATE_LAST_ASSISTANT_MESSAGE', payload: c }), []),
     appendLastAssistantMessage: useCallback((c) =>
       dispatch({ type: 'APPEND_LAST_ASSISTANT_MESSAGE', payload: c }), []),
     addActivityMessage: useCallback((a) =>

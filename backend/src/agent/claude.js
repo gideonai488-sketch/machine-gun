@@ -7,142 +7,97 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-const SYSTEM_PROMPT = `You are DevFlow AI, an expert software engineer embedded in a cloud IDE. You help users build applications by writing code, running commands, and managing their project.
+const SYSTEM_PROMPT = `You are DevFlow AI, an expert software engineer powering a cloud IDE. Users describe what they want to build and you build it for them.
 
-You have access to a cloud sandbox (Linux container) where you can read/write files and run commands. The project directory is /home/user/project.
+You have a full Linux cloud computer with shell access. The project lives at /home/user/project. The user NEVER sees the terminal, file system, or any raw output — they only see a chat and a live preview of the running app.
 
-Guidelines:
-- Write production-quality code. Never use placeholder comments like "// add logic here".
-- Always implement the actual logic when writing code.
-- Use best practices for the framework being used.
-- When creating a new project, set up the full file structure and configurations.
-- Install dependencies before trying to import them.
-- If a command fails, read the error and try to fix it automatically.
-- Keep the user informed about what you're doing with brief, clear explanations.
-- When writing files, always provide the complete file content — never partial updates.
-- After making changes, run the dev server so the user can preview their app.`
+Rules:
+- Write production-quality, complete code. Never use placeholder comments.
+- Always implement actual working logic.
+- Follow best practices for the framework.
+- When starting a new project, create the full file structure and all configs.
+- Install dependencies before importing them.
+- If a command fails, read the error and fix it automatically without telling the user about raw errors.
+- Keep your chat messages brief and friendly — tell the user what you're building, not implementation details.
+- When writing files, always provide complete file content.
+- After making changes, make sure the dev server is running so the preview updates.
+- Never show raw terminal output, file paths, or error logs to the user. Summarize in plain english.
+- You can run multiple tools in sequence to complete a task.`
 
-function formatTimestamp() {
-  return new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
+const projectLocks = new Map()
+
+async function acquireLock(projectId) {
+  while (projectLocks.get(projectId)) {
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  projectLocks.set(projectId, true)
 }
 
-async function executeTool(projectId, toolName, toolInput, emitActivity) {
-  const time = formatTimestamp()
+function releaseLock(projectId) {
+  projectLocks.delete(projectId)
+}
 
+function humanizeActivity(toolName, toolInput) {
+  switch (toolName) {
+    case 'write_file': {
+      const name = toolInput.path?.split('/').pop() || toolInput.path
+      return { message: `Creating ${name}`, type: 'file_write' }
+    }
+    case 'read_file': {
+      const name = toolInput.path?.split('/').pop() || toolInput.path
+      return { message: `Reading ${name}`, type: 'file_read' }
+    }
+    case 'run_command': {
+      const cmd = toolInput.command || ''
+      if (cmd.includes('npm install') || cmd.includes('npm i ') || cmd.includes('yarn add') || cmd.includes('flutter pub'))
+        return { message: 'Installing packages', type: 'install' }
+      if (cmd.includes('npm run build') || cmd.includes('flutter build'))
+        return { message: 'Building project', type: 'build' }
+      if (cmd.includes('npm run dev') || cmd.includes('npm start') || cmd.includes('flutter run'))
+        return { message: 'Starting dev server', type: 'command' }
+      if (cmd.includes('npm create') || cmd.includes('npx create'))
+        return { message: 'Scaffolding project', type: 'command' }
+      if (cmd.includes('mkdir'))
+        return { message: 'Setting up project structure', type: 'command' }
+      return { message: 'Running a command', type: 'command' }
+    }
+    case 'list_files':
+      return { message: 'Scanning project files', type: 'file_read' }
+    case 'search_code':
+      return { message: `Searching codebase`, type: 'file_read' }
+    case 'trigger_build':
+      return { message: `Building for ${toolInput.platform}`, type: 'build' }
+    case 'publish_app':
+      return { message: `Publishing to ${toolInput.platform}`, type: 'build' }
+    default:
+      return { message: 'Working...', type: 'command' }
+  }
+}
+
+async function executeTool(projectId, toolName, toolInput) {
   switch (toolName) {
     case 'read_file': {
-      const activityId = `read-${Date.now()}`
-      emitActivity({
-        id: activityId,
-        type: 'file_read',
-        message: `Reading ${toolInput.path}`,
-        status: 'running',
-        time,
-      })
       try {
-        const content = await sandboxManager.readFile(projectId, toolInput.path)
-        emitActivity({
-          id: activityId,
-          type: 'file_read',
-          message: `Read ${toolInput.path}`,
-          status: 'success',
-          time,
-          update: true,
-        })
-        return content
+        return await sandboxManager.readFile(projectId, toolInput.path)
       } catch (err) {
-        emitActivity({
-          id: activityId,
-          type: 'error',
-          message: `Failed to read ${toolInput.path}: ${err.message}`,
-          status: 'error',
-          time,
-          update: true,
-        })
         return `Error: ${err.message}`
       }
     }
 
     case 'write_file': {
-      const activityId = `write-${Date.now()}`
-      emitActivity({
-        id: activityId,
-        type: 'file_write',
-        message: `Writing ${toolInput.path}`,
-        detail: `${toolInput.content.split('\n').length} lines`,
-        status: 'running',
-        time,
-      })
       try {
         await sandboxManager.writeFile(projectId, toolInput.path, toolInput.content)
-        emitActivity({
-          id: activityId,
-          type: 'file_write',
-          message: `Wrote ${toolInput.path}`,
-          detail: `${toolInput.content.split('\n').length} lines`,
-          status: 'success',
-          time,
-          update: true,
-        })
         return `Successfully wrote ${toolInput.path}`
       } catch (err) {
-        emitActivity({
-          id: activityId,
-          type: 'error',
-          message: `Failed to write ${toolInput.path}: ${err.message}`,
-          status: 'error',
-          time,
-          update: true,
-        })
         return `Error: ${err.message}`
       }
     }
 
     case 'run_command': {
-      const activityId = `cmd-${Date.now()}`
-      const shortCmd = toolInput.command.length > 60
-        ? toolInput.command.substring(0, 60) + '...'
-        : toolInput.command
-
-      emitActivity({
-        id: activityId,
-        type: 'command',
-        message: `Running: ${shortCmd}`,
-        status: 'running',
-        time,
-      })
       try {
-        const result = await sandboxManager.runCommand(projectId, toolInput.command, 60000)
-        const success = result.exitCode === 0
-        emitActivity({
-          id: activityId,
-          type: success ? 'command' : 'error',
-          message: success
-            ? `Completed: ${shortCmd}`
-            : `Failed: ${shortCmd}`,
-          detail: success
-            ? null
-            : (result.stderr || '').substring(0, 200),
-          status: success ? 'success' : 'error',
-          time,
-          update: true,
-        })
+        const result = await sandboxManager.runCommand(projectId, toolInput.command, 120000)
         return `Exit code: ${result.exitCode}\nStdout: ${result.stdout}\nStderr: ${result.stderr}`
       } catch (err) {
-        emitActivity({
-          id: activityId,
-          type: 'error',
-          message: `Command failed: ${shortCmd}`,
-          detail: err.message,
-          status: 'error',
-          time,
-          update: true,
-        })
         return `Error running command: ${err.message}`
       }
     }
@@ -160,81 +115,23 @@ async function executeTool(projectId, toolName, toolInput, emitActivity) {
     }
 
     case 'search_code': {
-      const activityId = `search-${Date.now()}`
-      emitActivity({
-        id: activityId,
-        type: 'command',
-        message: `Searching for "${toolInput.query}"`,
-        status: 'running',
-        time,
-      })
       try {
         const result = await sandboxManager.runCommand(
           projectId,
           `grep -rn "${toolInput.query}" /home/user/project --include="*.{js,jsx,ts,tsx,dart,py,json,yaml,yml,html,css,md}" | head -50`,
           15000
         )
-        emitActivity({
-          id: activityId,
-          type: 'command',
-          message: `Search complete for "${toolInput.query}"`,
-          status: 'success',
-          time,
-          update: true,
-        })
         return result.stdout || 'No matches found'
       } catch (err) {
-        emitActivity({
-          id: activityId,
-          type: 'error',
-          message: `Search failed: ${err.message}`,
-          status: 'error',
-          time,
-          update: true,
-        })
         return `Error searching: ${err.message}`
       }
     }
 
-    case 'trigger_build': {
-      const activityId = `build-${Date.now()}`
-      emitActivity({
-        id: activityId,
-        type: 'build',
-        message: `Building for ${toolInput.platform}...`,
-        status: 'running',
-        time,
-      })
-      emitActivity({
-        id: activityId,
-        type: 'build',
-        message: `Build for ${toolInput.platform} triggered (GitHub Actions)`,
-        status: 'success',
-        time,
-        update: true,
-      })
+    case 'trigger_build':
       return `Build triggered for ${toolInput.platform}. This will be handled by GitHub Actions.`
-    }
 
-    case 'publish_app': {
-      const activityId = `publish-${Date.now()}`
-      emitActivity({
-        id: activityId,
-        type: 'build',
-        message: `Publishing to ${toolInput.platform} (${toolInput.track})...`,
-        status: 'running',
-        time,
-      })
-      emitActivity({
-        id: activityId,
-        type: 'build',
-        message: `Published to ${toolInput.platform} (${toolInput.track})`,
-        status: 'success',
-        time,
-        update: true,
-      })
+    case 'publish_app':
       return `App published to ${toolInput.platform} on track: ${toolInput.track}`
-    }
 
     default:
       return `Unknown tool: ${toolName}`
@@ -242,52 +139,80 @@ async function executeTool(projectId, toolName, toolInput, emitActivity) {
 }
 
 export async function handleChat(projectId, userMessage, io, socketRoom) {
-  const emitActivity = (activity) => {
-    io.to(socketRoom).emit('activity', activity)
-  }
+  await acquireLock(projectId)
 
-  const emitChatStream = (data) => {
-    io.to(socketRoom).emit('chat:stream', data)
-  }
+  try {
+    const emitActivity = (activity) => {
+      io.to(socketRoom).emit('activity', activity)
+    }
 
-  addChatMessage(projectId, { role: 'user', content: userMessage })
+    const emitChatStream = (data) => {
+      io.to(socketRoom).emit('chat:stream', data)
+    }
 
-  const history = getChatHistory(projectId)
+    addChatMessage(projectId, { role: 'user', content: userMessage })
 
-  const messages = history.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }))
+    const history = getChatHistory(projectId)
+    const messages = history.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }))
 
-  emitChatStream({ type: 'start' })
+    emitChatStream({ type: 'start' })
 
-  let continueLoop = true
-  let fullResponse = ''
+    let fullResponse = ''
+    let continueLoop = true
 
-  while (continueLoop) {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      tools: AGENT_TOOLS,
-      messages,
-    })
+    while (continueLoop) {
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8192,
+        system: SYSTEM_PROMPT,
+        tools: AGENT_TOOLS,
+        messages,
+      })
 
-    continueLoop = false
+      continueLoop = false
 
-    for (const block of response.content) {
-      if (block.type === 'text') {
+      const textBlocks = response.content.filter((b) => b.type === 'text')
+      const toolBlocks = response.content.filter((b) => b.type === 'tool_use')
+
+      for (const block of textBlocks) {
         fullResponse += block.text
         emitChatStream({ type: 'delta', content: block.text })
       }
 
-      if (block.type === 'tool_use') {
-        const toolResult = await executeTool(
-          projectId,
-          block.name,
-          block.input,
-          emitActivity
-        )
+      if (toolBlocks.length > 0) {
+        const toolResults = []
+
+        for (const block of toolBlocks) {
+          const activityId = `${block.name}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+          const { message: actMsg, type: actType } = humanizeActivity(block.name, block.input)
+
+          emitActivity({
+            id: activityId,
+            type: actType,
+            message: actMsg,
+            status: 'running',
+          })
+
+          const result = await executeTool(projectId, block.name, block.input)
+          const succeeded = !result.startsWith?.('Error')
+
+          emitActivity({
+            id: activityId,
+            type: actType,
+            message: actMsg,
+            status: succeeded ? 'success' : 'error',
+            update: true,
+          })
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: block.id,
+            content: typeof result === 'string' ? result : JSON.stringify(result),
+          })
+        }
 
         messages.push({
           role: 'assistant',
@@ -296,36 +221,28 @@ export async function handleChat(projectId, userMessage, io, socketRoom) {
 
         messages.push({
           role: 'user',
-          content: [
-            {
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
-            },
-          ],
+          content: toolResults,
         })
 
         continueLoop = true
       }
+
+      if (response.stop_reason === 'end_turn' && toolBlocks.length === 0) {
+        break
+      }
     }
 
-    if (response.stop_reason === 'tool_use') {
-      continueLoop = true
+    emitChatStream({ type: 'done' })
+
+    if (fullResponse) {
+      addChatMessage(projectId, { role: 'assistant', content: fullResponse })
     }
 
-    if (response.stop_reason === 'end_turn' && !continueLoop) {
-      break
-    }
+    const files = await sandboxManager.listFiles(projectId).catch(() => [])
+    io.to(socketRoom).emit('files:updated', { files })
+
+    return fullResponse
+  } finally {
+    releaseLock(projectId)
   }
-
-  emitChatStream({ type: 'done' })
-
-  if (fullResponse) {
-    addChatMessage(projectId, { role: 'assistant', content: fullResponse })
-  }
-
-  const files = await sandboxManager.listFiles(projectId).catch(() => [])
-  io.to(socketRoom).emit('files:updated', { files })
-
-  return fullResponse
 }

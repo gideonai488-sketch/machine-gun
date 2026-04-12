@@ -1,44 +1,44 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Send,
-  Bot,
   User,
   Sparkles,
   Loader2,
   FileCode,
   Package,
-  Terminal,
   CheckCircle2,
   XCircle,
   Wrench,
   Eye,
+  Search,
+  Rocket,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useProject } from '@/stores/project-store'
 import { socket } from '@/lib/socket'
 import { cn } from '@/lib/utils'
 
+const ACTIVITY_ICONS = {
+  file_write: FileCode,
+  file_read: Eye,
+  command: Wrench,
+  install: Package,
+  build: Rocket,
+  search: Search,
+  error: XCircle,
+}
+
 function ActivityBubble({ message }) {
   const isRunning = message.status === 'running'
   const isError = message.status === 'error'
   const isSuccess = message.status === 'success'
-
-  const ICONS = {
-    file_write: FileCode,
-    file_read: Eye,
-    command: Terminal,
-    install: Package,
-    build: Package,
-    fix: Wrench,
-    error: XCircle,
-  }
-  const Icon = ICONS[message.type] || Terminal
+  const Icon = ACTIVITY_ICONS[message.type] || Wrench
 
   return (
-    <div className="flex items-start gap-2 py-1">
+    <div className="flex items-center gap-2 py-0.5 px-1">
       <div className={cn(
-        'w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5',
-        isError ? 'bg-destructive/15' : isSuccess ? 'bg-success/15' : 'bg-muted'
+        'w-5 h-5 rounded-md flex items-center justify-center shrink-0',
+        isError ? 'bg-destructive/10' : isSuccess ? 'bg-success/10' : 'bg-primary/10'
       )}>
         {isRunning ? (
           <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />
@@ -50,19 +50,11 @@ function ActivityBubble({ message }) {
           <Icon className="w-2.5 h-2.5 text-muted-foreground" />
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-xs text-muted-foreground leading-tight">
-          {message.message}
-          {isSuccess && !message.message.includes('✓') && (
-            <span className="text-success ml-1">✓</span>
-          )}
-        </span>
-        {message.detail && (
-          <p className="text-[11px] text-muted-foreground/60 mt-0.5 truncate">
-            {message.detail}
-          </p>
-        )}
-      </div>
+      <span className="text-xs text-muted-foreground">
+        {message.message}
+        {isSuccess && <span className="text-success ml-1">✓</span>}
+        {isError && <span className="text-destructive ml-1">✗</span>}
+      </span>
     </div>
   )
 }
@@ -87,7 +79,7 @@ function MessageBubble({ message }) {
         )}
       </div>
       <div className={cn(
-        'rounded-2xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed',
+        'rounded-2xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap',
         isUser
           ? 'bg-primary text-white rounded-tr-sm'
           : 'bg-card border border-border/60 rounded-tl-sm'
@@ -183,7 +175,6 @@ export default function ChatPanel() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {chatMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center">
@@ -207,7 +198,6 @@ export default function ChatPanel() {
         )}
       </div>
 
-      {/* Input */}
       <div className="shrink-0 border-t border-border/60 bg-card/30 p-3">
         <form onSubmit={handleSubmit}>
           <div className="bg-background border border-border/60 rounded-xl overflow-hidden focus-within:ring-1 focus-within:ring-primary/40 focus-within:border-primary/40 transition-all">
