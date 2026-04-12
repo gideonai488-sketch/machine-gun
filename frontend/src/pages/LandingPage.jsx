@@ -7,25 +7,24 @@ import {
   Smartphone,
   Globe,
   Layers,
-  GitBranch,
   Zap,
-  Code2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 
 const FRAMEWORKS = [
-  { id: 'flutter', label: 'Flutter', icon: Smartphone, color: '#02569B' },
-  { id: 'react-vite', label: 'React + Vite', icon: Globe, color: '#61DAFB' },
-  { id: 'react-native', label: 'React Native', icon: Layers, color: '#61DAFB' },
+  { id: 'flutter', label: 'Flutter', icon: Smartphone },
+  { id: 'react-vite', label: 'React + Vite', icon: Globe },
+  { id: 'react-native', label: 'React Native', icon: Layers },
 ]
 
-const EXAMPLE_PROMPTS = [
-  'Build a todo app with Flutter and Firebase',
-  'Create a weather dashboard with React and OpenWeather API',
-  'Make a social media feed app with React Native',
-  'Build a habit tracker with Flutter and local storage',
-  'Create an e-commerce storefront with React + Vite',
+const EXAMPLES = [
+  'A todo app with categories, due dates, and dark mode',
+  'A weather dashboard that shows 5-day forecast with charts',
+  'A personal finance tracker with expense categories',
+  'A recipe app with search, favorites, and meal planning',
+  'A habit tracker with streaks and weekly stats',
+  'A markdown blog with syntax highlighting',
 ]
 
 export default function LandingPage() {
@@ -51,115 +50,108 @@ export default function LandingPage() {
     }
   }
 
-  function handleExampleClick(example) {
-    setPrompt(example)
-  }
-
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(99, 102, 241, 0.3) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(99, 102, 241, 0.3) 1px, transparent 1px)`,
-          backgroundSize: '64px 64px',
-        }}
-      />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Ambient glow */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/[0.07] rounded-full blur-[150px]" />
+      </div>
 
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
-
-      <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-semibold">DevFlow</span>
+          <span className="text-lg font-bold tracking-tight">DevFlow</span>
         </div>
-        <Button variant="outline" size="sm" className="gap-2">
-          <GitBranch className="w-4 h-4" />
-          Sign in with GitHub
-        </Button>
       </header>
 
-      <main className="relative z-10 flex flex-col items-center justify-center px-6 pt-24 pb-16 max-w-3xl mx-auto">
+      {/* Main */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-20 -mt-12">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10 max-w-2xl"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            AI-Powered Cloud IDE
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-            Describe it. Build it.{' '}
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Ship it.
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.1] tracking-tight mb-4">
+            What do you want
+            <br />
+            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              to build?
             </span>
           </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Tell DevFlow what you want to build. Our AI writes the code, runs it in the cloud,
-            and publishes to app stores — all from your browser.
+          <p className="text-muted-foreground text-base sm:text-lg max-w-md mx-auto">
+            Describe your app and DevFlow will build it for you — code, preview, and deploy, all in one place.
           </p>
         </motion.div>
 
         <motion.form
           onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-full"
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="w-full max-w-2xl"
         >
-          <div className="relative bg-card border border-border rounded-xl p-4 shadow-lg shadow-primary/5">
-            <div className="flex gap-2 mb-3">
-              {FRAMEWORKS.map((fw) => {
-                const Icon = fw.icon
-                return (
-                  <button
-                    key={fw.id}
-                    type="button"
-                    onClick={() => setFramework(fw.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                      framework === fw.id
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted border border-transparent'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {fw.label}
-                  </button>
-                )
-              })}
-            </div>
+          <div className="bg-card/80 backdrop-blur-xl border border-border/60 rounded-2xl p-3 shadow-2xl shadow-black/30">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmit(e)
+                }
+              }}
+              placeholder="Describe the app you want to build..."
+              rows={3}
+              className="w-full bg-transparent resize-none px-3 py-2 text-sm sm:text-base placeholder:text-muted-foreground/60 focus:outline-none leading-relaxed"
+              autoFocus
+            />
 
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Code2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="What do you want to build?"
-                  className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
-                  autoFocus
-                />
+            <div className="flex items-center justify-between pt-1 px-1">
+              <div className="flex items-center gap-1.5">
+                {FRAMEWORKS.map((fw) => {
+                  const Icon = fw.icon
+                  return (
+                    <button
+                      key={fw.id}
+                      type="button"
+                      onClick={() => setFramework(fw.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        framework === fw.id
+                          ? 'bg-primary/15 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      <Icon className="w-3 h-3" />
+                      {fw.label}
+                    </button>
+                  )
+                })}
               </div>
+
               <Button
                 type="submit"
                 disabled={!prompt.trim() || isCreating}
-                className="px-6 gap-2"
+                size="sm"
+                className="rounded-xl px-5 gap-2 h-8"
               >
                 {isCreating ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                  </motion.div>
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </motion.div>
+                    Creating...
+                  </>
                 ) : (
                   <>
                     Build
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </>
                 )}
               </Button>
@@ -170,51 +162,25 @@ export default function LandingPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8 w-full"
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="mt-8 max-w-2xl w-full"
         >
-          <p className="text-xs text-muted-foreground mb-3 text-center">Try an example</p>
           <div className="flex flex-wrap justify-center gap-2">
             <AnimatePresence>
-              {EXAMPLE_PROMPTS.map((example, i) => (
+              {EXAMPLES.map((example, i) => (
                 <motion.button
                   key={example}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 + i * 0.05 }}
-                  onClick={() => handleExampleClick(example)}
-                  className="px-3 py-1.5 rounded-lg bg-muted/50 text-muted-foreground text-xs hover:bg-muted hover:text-foreground transition-colors border border-transparent hover:border-border cursor-pointer"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 + i * 0.04 }}
+                  onClick={() => setPrompt(example)}
+                  className="px-3 py-1.5 rounded-full bg-card/60 border border-border/40 text-muted-foreground text-xs hover:text-foreground hover:bg-card hover:border-border transition-all cursor-pointer"
                 >
                   {example}
                 </motion.button>
               ))}
             </AnimatePresence>
           </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4 w-full"
-        >
-          {[
-            { icon: Code2, title: 'AI Writes Code', desc: 'Claude builds your app from a natural language description' },
-            { icon: Globe, title: 'Cloud Sandbox', desc: 'Code runs in isolated cloud containers — no local setup needed' },
-            { icon: Smartphone, title: 'Ship to Stores', desc: 'Build and publish to Google Play & App Store in one click' },
-          ].map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.1 }}
-              className="p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors"
-            >
-              <feature.icon className="w-8 h-8 text-primary mb-3" />
-              <h3 className="font-semibold mb-1">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground">{feature.desc}</p>
-            </motion.div>
-          ))}
         </motion.div>
       </main>
     </div>

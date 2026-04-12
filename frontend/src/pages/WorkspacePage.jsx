@@ -1,74 +1,52 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
-  FolderTree,
-  Hammer,
-  Settings,
-  Code2,
-  MessageSquare,
+  Zap,
   Eye,
-  Activity,
-  FileWarning,
-  PanelBottomClose,
-  PanelBottomOpen,
+  Code2,
+  Share2,
+  Rocket,
+  Loader2,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useProject, ProjectProvider } from '@/stores/project-store'
 import { connectSocket, disconnectSocket, socket } from '@/lib/socket'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-import TopBar from '@/components/workspace/TopBar'
-import FileTree from '@/components/workspace/FileTree'
-import BuildPanel from '@/components/workspace/BuildPanel'
-import SettingsPanel from '@/components/workspace/SettingsPanel'
-import CodeEditor from '@/components/workspace/CodeEditor'
 import ChatPanel from '@/components/workspace/ChatPanel'
 import PreviewPanel from '@/components/workspace/PreviewPanel'
-import ActivityPanel from '@/components/workspace/ActivityPanel'
-import LogsPanel from '@/components/workspace/LogsPanel'
+import CodeEditor from '@/components/workspace/CodeEditor'
 
-const SIDEBAR_TABS = [
-  { id: 'files', label: 'Files', icon: FolderTree },
-  { id: 'build', label: 'Build', icon: Hammer },
-  { id: 'settings', label: 'Settings', icon: Settings },
-]
-
-const MAIN_TABS = [
-  { id: 'editor', label: 'Editor', icon: Code2 },
-  { id: 'chat', label: 'Claude Chat', icon: MessageSquare },
-]
-
-const BOTTOM_TABS = [
-  { id: 'preview', label: 'Preview', icon: Eye },
-  { id: 'activity', label: 'Activity', icon: Activity },
-  { id: 'logs', label: 'Logs', icon: FileWarning },
-]
+const STATUS_CONFIG = {
+  idle: { label: 'Ready', variant: 'secondary' },
+  initializing: { label: 'Setting up...', variant: 'warning' },
+  building: { label: 'Building...', variant: 'warning' },
+  success: { label: 'Live', variant: 'success' },
+  error: { label: 'Error', variant: 'destructive' },
+  ready: { label: 'Live', variant: 'success' },
+}
 
 function WorkspaceContent() {
   const { projectId } = useParams()
   const {
     project,
     setProject,
-    sidebarTab,
-    setSidebarTab,
-    mainTab,
-    setMainTab,
-    bottomTab,
-    setBottomTab,
-    sidebarOpen,
-    toggleSidebar,
-    bottomPanelOpen,
-    toggleBottomPanel,
+    setPreviewUrl,
+    rightPanel,
+    setRightPanel,
+    buildStatus,
     setBuildStatus,
-    addActivity,
-    updateActivity,
     setFiles,
     setFileContent,
   } = useProject()
 
+  const status = STATUS_CONFIG[project?.status || buildStatus] || STATUS_CONFIG.idle
+
   useEffect(() => {
-    async function loadProject() {
+    async function init() {
       try {
         const proj = await api.getProject(projectId)
         setProject(proj)
@@ -77,173 +55,126 @@ function WorkspaceContent() {
         console.error('Failed to load project:', err)
       }
     }
-
-    loadProject()
-
-    return () => {
-      disconnectSocket()
-    }
+    init()
+    return () => disconnectSocket()
   }, [projectId, setProject])
 
   useEffect(() => {
+    function handleProjectUpdated(data) {
+      if (data.previewUrl) setPreviewUrl(data.previewUrl)
+      if (data.status) setBuildStatus(data.status)
+    }
     function handleFilesUpdated(data) {
       setFiles(data.files)
     }
-
     function handleFileChanged(data) {
       setFileContent(data.path, data.content)
     }
 
-    function handleBuildStatus(data) {
-      setBuildStatus(data.status)
-    }
-
+    socket.on('project:updated', handleProjectUpdated)
     socket.on('files:updated', handleFilesUpdated)
     socket.on('file:changed', handleFileChanged)
-    socket.on('build:status', handleBuildStatus)
+    socket.on('build:status', (data) => setBuildStatus(data.status))
 
     return () => {
+      socket.off('project:updated', handleProjectUpdated)
       socket.off('files:updated', handleFilesUpdated)
       socket.off('file:changed', handleFileChanged)
-      socket.off('build:status', handleBuildStatus)
+      socket.off('build:status')
     }
-  }, [setFiles, setFileContent, setBuildStatus])
+  }, [setPreviewUrl, setBuildStatus, setFiles, setFileContent])
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
-      <TopBar />
+      {/* Top bar — minimal */}
+      <header className="h-11 border-b border-border/60 bg-card/60 backdrop-blur-sm flex items-center justify-between px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <Zap className="w-3 h-3 text-white" />
+            </div>
+            <span className="font-semibold text-sm">DevFlow</span>
+          </div>
 
+          <div className="h-4 w-px bg-border/50" />
+
+          <span className="text-xs text-muted-foreground truncate max-w-[250px]">
+            {project?.name || 'Loading...'}
+          </span>
+
+          <Badge variant={status.variant} className="text-[10px] h-5 px-2">
+            {status.label === 'Setting up...' && (
+              <Loader2 className="w-2.5 h-2.5 mr-1 animate-spin" />
+            )}
+            {status.label}
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-muted-foreground">
+            <Share2 className="w-3 h-3" />
+            Share
+          </Button>
+          <Button size="sm" className="h-7 text-xs gap-1.5">
+            <Rocket className="w-3 h-3" />
+            Deploy
+          </Button>
+        </div>
+      </header>
+
+      {/* Main layout: Chat | Preview/Code */}
       <div className="flex-1 flex overflow-hidden">
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.aside
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 260, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="border-r border-border bg-card/30 flex flex-col overflow-hidden shrink-0"
-            >
-              <div className="flex border-b border-border">
-                {SIDEBAR_TABS.map((tab) => {
-                  const Icon = tab.icon
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setSidebarTab(tab.id)}
-                      className={cn(
-                        'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors cursor-pointer',
-                        sidebarTab === tab.id
-                          ? 'text-primary border-b-2 border-primary'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="hidden lg:inline">{tab.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
+        {/* Left: Chat */}
+        <div className="w-[420px] min-w-[320px] max-w-[500px] border-r border-border/60 flex flex-col shrink-0">
+          <ChatPanel />
+        </div>
 
-              <div className="flex-1 overflow-hidden">
-                {sidebarTab === 'files' && <FileTree />}
-                {sidebarTab === 'build' && <BuildPanel />}
-                {sidebarTab === 'settings' && <SettingsPanel />}
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-
+        {/* Right: Preview or Code */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex border-b border-border">
-            {MAIN_TABS.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setMainTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors cursor-pointer',
-                    mainTab === tab.id
-                      ? 'text-primary border-b-2 border-primary bg-background'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                </button>
-              )
-            })}
-            <div className="flex-1" />
+          {/* Tab bar */}
+          <div className="flex items-center border-b border-border/60 bg-card/30 px-2 shrink-0">
             <button
-              onClick={toggleSidebar}
-              className="px-3 text-muted-foreground hover:text-foreground transition-colors cursor-pointer hidden md:flex items-center"
-              title="Toggle sidebar"
+              onClick={() => setRightPanel('preview')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors cursor-pointer relative',
+                rightPanel === 'preview'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <FolderTree className="w-3.5 h-3.5" />
+              <Eye className="w-3.5 h-3.5" />
+              Preview
+              {rightPanel === 'preview' && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                />
+              )}
             </button>
-          </div>
-
-          <div className="flex-1 overflow-hidden">
-            {mainTab === 'editor' && <CodeEditor />}
-            {mainTab === 'chat' && <ChatPanel />}
-          </div>
-
-          <div className="flex items-center border-t border-border border-b border-b-border">
-            {BOTTOM_TABS.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    if (bottomTab === tab.id && bottomPanelOpen) {
-                      toggleBottomPanel()
-                    } else {
-                      setBottomTab(tab.id)
-                      if (!bottomPanelOpen) toggleBottomPanel()
-                    }
-                  }}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                    bottomTab === tab.id && bottomPanelOpen
-                      ? 'text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <Icon className="w-3 h-3" />
-                  {tab.label}
-                </button>
-              )
-            })}
-            <div className="flex-1" />
             <button
-              onClick={toggleBottomPanel}
-              className="px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              onClick={() => setRightPanel('code')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors cursor-pointer relative',
+                rightPanel === 'code'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              {bottomPanelOpen ? (
-                <PanelBottomClose className="w-3.5 h-3.5" />
-              ) : (
-                <PanelBottomOpen className="w-3.5 h-3.5" />
+              <Code2 className="w-3.5 h-3.5" />
+              Code
+              {rightPanel === 'code' && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                />
               )}
             </button>
           </div>
 
-          <AnimatePresence>
-            {bottomPanelOpen && (
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: 280 }}
-                exit={{ height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="border-t border-border overflow-hidden shrink-0"
-              >
-                <div className="h-full">
-                  {bottomTab === 'preview' && <PreviewPanel />}
-                  {bottomTab === 'activity' && <ActivityPanel />}
-                  {bottomTab === 'logs' && <LogsPanel />}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Panel content */}
+          <div className="flex-1 overflow-hidden">
+            {rightPanel === 'preview' ? <PreviewPanel /> : <CodeEditor />}
+          </div>
         </div>
       </div>
     </div>

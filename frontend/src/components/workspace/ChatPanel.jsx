@@ -1,17 +1,122 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Sparkles, Loader2 } from 'lucide-react'
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  Loader2,
+  FileCode,
+  Package,
+  Terminal,
+  CheckCircle2,
+  XCircle,
+  Wrench,
+  Eye,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useProject } from '@/stores/project-store'
 import { socket } from '@/lib/socket'
 import { cn } from '@/lib/utils'
 
+function ActivityBubble({ message }) {
+  const isRunning = message.status === 'running'
+  const isError = message.status === 'error'
+  const isSuccess = message.status === 'success'
+
+  const ICONS = {
+    file_write: FileCode,
+    file_read: Eye,
+    command: Terminal,
+    install: Package,
+    build: Package,
+    fix: Wrench,
+    error: XCircle,
+  }
+  const Icon = ICONS[message.type] || Terminal
+
+  return (
+    <div className="flex items-start gap-2 py-1">
+      <div className={cn(
+        'w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5',
+        isError ? 'bg-destructive/15' : isSuccess ? 'bg-success/15' : 'bg-muted'
+      )}>
+        {isRunning ? (
+          <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />
+        ) : isError ? (
+          <XCircle className="w-2.5 h-2.5 text-destructive" />
+        ) : isSuccess ? (
+          <CheckCircle2 className="w-2.5 h-2.5 text-success" />
+        ) : (
+          <Icon className="w-2.5 h-2.5 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-xs text-muted-foreground leading-tight">
+          {message.message}
+          {isSuccess && !message.message.includes('✓') && (
+            <span className="text-success ml-1">✓</span>
+          )}
+        </span>
+        {message.detail && (
+          <p className="text-[11px] text-muted-foreground/60 mt-0.5 truncate">
+            {message.detail}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MessageBubble({ message }) {
+  if (message.role === 'activity') {
+    return <ActivityBubble message={message} />
+  }
+
+  const isUser = message.role === 'user'
+
+  return (
+    <div className={cn('flex gap-2.5', isUser ? 'flex-row-reverse' : 'flex-row')}>
+      <div className={cn(
+        'w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5',
+        isUser ? 'bg-primary' : 'bg-card border border-border'
+      )}>
+        {isUser ? (
+          <User className="w-3.5 h-3.5 text-white" />
+        ) : (
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+        )}
+      </div>
+      <div className={cn(
+        'rounded-2xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed',
+        isUser
+          ? 'bg-primary text-white rounded-tr-sm'
+          : 'bg-card border border-border/60 rounded-tl-sm'
+      )}>
+        {message.content || (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="text-xs">Thinking...</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function ChatPanel() {
-  const { project, chatMessages, addChatMessage, updateLastAssistantMessage } = useProject()
+  const {
+    project,
+    chatMessages,
+    addChatMessage,
+    appendLastAssistantMessage,
+    addActivityMessage,
+    updateActivityMessage,
+  } = useProject()
+
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -23,17 +128,29 @@ export default function ChatPanel() {
         setIsStreaming(true)
         addChatMessage({ role: 'assistant', content: '' })
       } else if (data.type === 'delta') {
-        updateLastAssistantMessage((prev) => prev + data.content)
+        appendLastAssistantMessage(data.content)
       } else if (data.type === 'done') {
         setIsStreaming(false)
       }
     }
 
-    socket.on('chat:stream', handleChatStream)
-    return () => socket.off('chat:stream', handleChatStream)
-  }, [addChatMessage, updateLastAssistantMessage])
+    function handleActivity(data) {
+      if (data.update) {
+        updateActivityMessage(data)
+      } else {
+        addActivityMessage(data)
+      }
+    }
 
-  async function handleSend(e) {
+    socket.on('chat:stream', handleChatStream)
+    socket.on('activity', handleActivity)
+    return () => {
+      socket.off('chat:stream', handleChatStream)
+      socket.off('activity', handleActivity)
+    }
+  }, [addChatMessage, appendLastAssistantMessage, addActivityMessage, updateActivityMessage])
+
+  function handleSubmit(e) {
     e.preventDefault()
     const message = input.trim()
     if (!message || !project?.id || isStreaming) return
@@ -45,83 +162,88 @@ export default function ChatPanel() {
       projectId: project.id,
       message,
     })
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit(e)
+    }
+  }
+
+  function autoResize(e) {
+    const el = e.target
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px'
   }
 
   return (
     <div className="h-full flex flex-col">
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {chatMessages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {chatMessages.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center max-w-xs">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-semibold mb-1">Claude is ready</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Describe what you want to build or ask for changes. Claude will write the code and run it in the cloud.
+              <h3 className="font-semibold text-sm mb-1.5">DevFlow AI</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                I'll build your app and you'll see it live on the right. Just tell me what to change.
               </p>
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {chatMessages.map((msg, i) => (
+              <MessageBubble key={msg.id || i} message={msg} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
 
-          {chatMessages.map((msg, i) => (
-            <div
-              key={i}
-              className={cn(
-                'flex gap-3',
-                msg.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
-            >
-              {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <Bot className="w-3.5 h-3.5 text-primary" />
-                </div>
-              )}
-              <div
-                className={cn(
-                  'rounded-xl px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed',
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-card border border-border'
-                )}
+      {/* Input */}
+      <div className="shrink-0 border-t border-border/60 bg-card/30 p-3">
+        <form onSubmit={handleSubmit}>
+          <div className="bg-background border border-border/60 rounded-xl overflow-hidden focus-within:ring-1 focus-within:ring-primary/40 focus-within:border-primary/40 transition-all">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+                autoResize(e)
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={isStreaming ? 'Wait for response...' : 'Ask DevFlow to build or change something...'}
+              rows={1}
+              disabled={isStreaming}
+              className="w-full bg-transparent resize-none px-3.5 pt-3 pb-1 text-sm placeholder:text-muted-foreground/50 focus:outline-none leading-relaxed disabled:opacity-50"
+            />
+            <div className="flex items-center justify-between px-2 pb-2">
+              <span className="text-[10px] text-muted-foreground/40 px-1.5">
+                Shift+Enter for new line
+              </span>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || isStreaming}
+                className="h-7 w-7 rounded-lg"
               >
-                {msg.content || (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Thinking...
-                  </div>
+                {isStreaming ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
                 )}
-              </div>
-              {msg.role === 'user' && (
-                <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-3.5 h-3.5 text-muted-foreground" />
-                </div>
-              )}
+              </Button>
             </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      <form onSubmit={handleSend} className="p-3 border-t border-border">
-        <div className="flex gap-2">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Claude to build something..."
-            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            disabled={isStreaming}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!input.trim() || isStreaming}
-            className="shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-      </form>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -9,21 +9,19 @@ const initialState = {
   activeFile: null,
   fileContents: {},
   chatMessages: [],
-  activities: [],
-  buildLogs: [],
   buildStatus: 'idle',
-  sidebarTab: 'files',
-  mainTab: 'editor',
-  bottomTab: 'preview',
-  sidebarOpen: true,
-  bottomPanelOpen: true,
-  previewMode: 'web',
+  rightPanel: 'preview',
+  previewMode: 'desktop',
+  previewUrl: null,
 }
 
 function projectReducer(state, action) {
   switch (action.type) {
     case 'SET_PROJECT':
-      return { ...state, project: action.payload }
+      return { ...state, project: action.payload, previewUrl: action.payload?.previewUrl || null }
+
+    case 'SET_PREVIEW_URL':
+      return { ...state, previewUrl: action.payload }
 
     case 'SET_FILES':
       return { ...state, files: action.payload }
@@ -35,7 +33,7 @@ function projectReducer(state, action) {
         ...state,
         openFiles: alreadyOpen ? state.openFiles : [...state.openFiles, filePath],
         activeFile: filePath,
-        mainTab: 'editor',
+        rightPanel: 'code',
       }
     }
 
@@ -61,51 +59,48 @@ function projectReducer(state, action) {
     case 'ADD_CHAT_MESSAGE':
       return { ...state, chatMessages: [...state.chatMessages, action.payload] }
 
-    case 'UPDATE_LAST_ASSISTANT_MESSAGE':
-      return {
-        ...state,
-        chatMessages: state.chatMessages.map((msg, i) =>
-          i === state.chatMessages.length - 1 && msg.role === 'assistant'
-            ? { ...msg, content: action.payload }
-            : msg
-        ),
+    case 'UPDATE_LAST_ASSISTANT_MESSAGE': {
+      const msgs = [...state.chatMessages]
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].role === 'assistant') {
+          msgs[i] = { ...msgs[i], content: action.payload }
+          break
+        }
       }
-
-    case 'ADD_ACTIVITY':
-      return { ...state, activities: [...state.activities, action.payload] }
-
-    case 'UPDATE_ACTIVITY': {
-      return {
-        ...state,
-        activities: state.activities.map((a) =>
-          a.id === action.payload.id ? { ...a, ...action.payload } : a
-        ),
-      }
+      return { ...state, chatMessages: msgs }
     }
 
-    case 'ADD_BUILD_LOG':
-      return { ...state, buildLogs: [...state.buildLogs, action.payload] }
+    case 'APPEND_LAST_ASSISTANT_MESSAGE': {
+      const msgs = [...state.chatMessages]
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].role === 'assistant') {
+          msgs[i] = { ...msgs[i], content: (msgs[i].content || '') + action.payload }
+          break
+        }
+      }
+      return { ...state, chatMessages: msgs }
+    }
 
-    case 'CLEAR_BUILD_LOGS':
-      return { ...state, buildLogs: [] }
+    case 'ADD_ACTIVITY_MESSAGE':
+      return {
+        ...state,
+        chatMessages: [...state.chatMessages, { role: 'activity', ...action.payload }],
+      }
+
+    case 'UPDATE_ACTIVITY_MESSAGE': {
+      const msgs = [...state.chatMessages]
+      const idx = msgs.findIndex((m) => m.id === action.payload.id)
+      if (idx !== -1) {
+        msgs[idx] = { ...msgs[idx], ...action.payload }
+      }
+      return { ...state, chatMessages: msgs }
+    }
 
     case 'SET_BUILD_STATUS':
       return { ...state, buildStatus: action.payload }
 
-    case 'SET_SIDEBAR_TAB':
-      return { ...state, sidebarTab: action.payload }
-
-    case 'SET_MAIN_TAB':
-      return { ...state, mainTab: action.payload }
-
-    case 'SET_BOTTOM_TAB':
-      return { ...state, bottomTab: action.payload }
-
-    case 'TOGGLE_SIDEBAR':
-      return { ...state, sidebarOpen: !state.sidebarOpen }
-
-    case 'TOGGLE_BOTTOM_PANEL':
-      return { ...state, bottomPanelOpen: !state.bottomPanelOpen }
+    case 'SET_RIGHT_PANEL':
+      return { ...state, rightPanel: action.payload }
 
     case 'SET_PREVIEW_MODE':
       return { ...state, previewMode: action.payload }
@@ -120,23 +115,24 @@ export function ProjectProvider({ children }) {
 
   const actions = {
     setProject: useCallback((p) => dispatch({ type: 'SET_PROJECT', payload: p }), []),
+    setPreviewUrl: useCallback((u) => dispatch({ type: 'SET_PREVIEW_URL', payload: u }), []),
     setFiles: useCallback((f) => dispatch({ type: 'SET_FILES', payload: f }), []),
     openFile: useCallback((p) => dispatch({ type: 'OPEN_FILE', payload: p }), []),
     closeFile: useCallback((p) => dispatch({ type: 'CLOSE_FILE', payload: p }), []),
     setActiveFile: useCallback((p) => dispatch({ type: 'SET_ACTIVE_FILE', payload: p }), []),
-    setFileContent: useCallback((path, content) => dispatch({ type: 'SET_FILE_CONTENT', payload: { path, content } }), []),
+    setFileContent: useCallback((path, content) =>
+      dispatch({ type: 'SET_FILE_CONTENT', payload: { path, content } }), []),
     addChatMessage: useCallback((m) => dispatch({ type: 'ADD_CHAT_MESSAGE', payload: m }), []),
-    updateLastAssistantMessage: useCallback((c) => dispatch({ type: 'UPDATE_LAST_ASSISTANT_MESSAGE', payload: c }), []),
-    addActivity: useCallback((a) => dispatch({ type: 'ADD_ACTIVITY', payload: a }), []),
-    updateActivity: useCallback((a) => dispatch({ type: 'UPDATE_ACTIVITY', payload: a }), []),
-    addBuildLog: useCallback((l) => dispatch({ type: 'ADD_BUILD_LOG', payload: l }), []),
-    clearBuildLogs: useCallback(() => dispatch({ type: 'CLEAR_BUILD_LOGS' }), []),
+    updateLastAssistantMessage: useCallback((c) =>
+      dispatch({ type: 'UPDATE_LAST_ASSISTANT_MESSAGE', payload: c }), []),
+    appendLastAssistantMessage: useCallback((c) =>
+      dispatch({ type: 'APPEND_LAST_ASSISTANT_MESSAGE', payload: c }), []),
+    addActivityMessage: useCallback((a) =>
+      dispatch({ type: 'ADD_ACTIVITY_MESSAGE', payload: a }), []),
+    updateActivityMessage: useCallback((a) =>
+      dispatch({ type: 'UPDATE_ACTIVITY_MESSAGE', payload: a }), []),
     setBuildStatus: useCallback((s) => dispatch({ type: 'SET_BUILD_STATUS', payload: s }), []),
-    setSidebarTab: useCallback((t) => dispatch({ type: 'SET_SIDEBAR_TAB', payload: t }), []),
-    setMainTab: useCallback((t) => dispatch({ type: 'SET_MAIN_TAB', payload: t }), []),
-    setBottomTab: useCallback((t) => dispatch({ type: 'SET_BOTTOM_TAB', payload: t }), []),
-    toggleSidebar: useCallback(() => dispatch({ type: 'TOGGLE_SIDEBAR' }), []),
-    toggleBottomPanel: useCallback(() => dispatch({ type: 'TOGGLE_BOTTOM_PANEL' }), []),
+    setRightPanel: useCallback((t) => dispatch({ type: 'SET_RIGHT_PANEL', payload: t }), []),
     setPreviewMode: useCallback((m) => dispatch({ type: 'SET_PREVIEW_MODE', payload: m }), []),
   }
 
