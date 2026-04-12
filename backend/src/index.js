@@ -5,6 +5,7 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import { projectRouter } from './routes/projects.js'
 import { buildRouter } from './routes/builds.js'
+import { authRouter } from './routes/auth.js'
 import { setupSocketHandlers } from './socket/handlers.js'
 
 const app = express()
@@ -22,6 +23,7 @@ app.use(cors({
 }))
 app.use(express.json({ limit: '10mb' }))
 
+app.use('/api/auth', authRouter)
 app.use('/api/projects', projectRouter)
 app.use('/api/projects', buildRouter)
 
@@ -35,7 +37,7 @@ app.set('io', io)
 
 const PORT = process.env.PORT || 3001
 server.listen(PORT, () => {
-  console.log(`DevFlow backend running on port ${PORT}`)
+  console.log(`Machine Gun backend running on port ${PORT}`)
 })
 
 export { app, io }

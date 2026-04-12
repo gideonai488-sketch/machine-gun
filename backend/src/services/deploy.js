@@ -139,7 +139,7 @@ export async function buildAndPublishMobile(projectId, { platform, track, emitAc
     await sandboxManager.runCommand(projectId, 'cd /home/user/project && git add -A', 10000)
     await sandboxManager.runCommand(
       projectId,
-      'cd /home/user/project && git -c user.name="DevFlow" -c user.email="agent@devflow.dev" commit -m "DevFlow build"',
+      'cd /home/user/project && git -c user.name="MachineGun" -c user.email="agent@machinegun.dev" commit -m "Machine Gun build"',
       10000
     )
 

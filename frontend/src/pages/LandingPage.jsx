@@ -1,50 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Sparkles,
-  ArrowRight,
-  Smartphone,
-  Globe,
-  Layers,
-  Zap,
-} from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowRight, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api'
-
-const FRAMEWORKS = [
-  { id: 'flutter', label: 'Flutter', icon: Smartphone },
-  { id: 'react-vite', label: 'React', icon: Globe },
-  { id: 'react-native', label: 'React Native', icon: Layers },
-]
-
-const EXAMPLES = [
-  'A todo app with categories and dark mode',
-  'A weather dashboard with 5-day forecast',
-  'A personal finance tracker',
-  'A recipe app with search and favorites',
-  'A habit tracker with streaks',
-  'A markdown blog with syntax highlighting',
-]
+import { useAuth } from '@/stores/auth-store'
+import FalconIcon from '@/components/icons/FalconIcon'
 
 export default function LandingPage() {
-  const navigate = useNavigate()
-  const [prompt, setPrompt] = useState('')
-  const [framework, setFramework] = useState('react-vite')
-  const [isCreating, setIsCreating] = useState(false)
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!prompt.trim() || isCreating) return
-    setIsCreating(true)
-    try {
-      const project = await api.createProject({ prompt: prompt.trim(), framework })
-      navigate(`/project/${project.id}`)
-    } catch (err) {
-      console.error('Failed to create project:', err)
-      setIsCreating(false)
-    }
-  }
+  const { loginWithGithub } = useAuth()
 
   return (
     <div className="min-h-screen h-screen-safe bg-white flex flex-col relative overflow-hidden">
@@ -56,10 +17,14 @@ export default function LandingPage() {
       <header className="relative z-10 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            <FalconIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900">DevFlow</span>
+          <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900">Machine Gun</span>
         </div>
+        <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={loginWithGithub}>
+          <GitBranch className="w-3.5 h-3.5" />
+          Sign in with GitHub
+        </Button>
       </header>
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-8 sm:pb-16 -mt-6 sm:-mt-12">
@@ -67,114 +32,67 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-6 sm:mb-10 max-w-2xl"
+          className="text-center mb-8 sm:mb-12 max-w-2xl"
         >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/25"
+          >
+            <FalconIcon className="w-9 h-9 sm:w-11 sm:h-11 text-white" />
+          </motion.div>
+
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold leading-[1.1] tracking-tight mb-3 sm:mb-4 text-slate-900">
-            What do you want
+            Build apps at
             <br />
             <span className="bg-gradient-to-r from-red-500 via-rose-500 to-red-600 bg-clip-text text-transparent">
-              to build?
+              machine gun speed
             </span>
           </h1>
-          <p className="text-slate-500 text-sm sm:text-base max-w-sm sm:max-w-md mx-auto leading-relaxed">
-            Describe your app and DevFlow builds it — code, preview, deploy.
+          <p className="text-slate-500 text-sm sm:text-lg max-w-sm sm:max-w-lg mx-auto leading-relaxed">
+            Describe your idea. Our AI builds it, previews it live, and deploys it — all from your browser or phone.
           </p>
         </motion.div>
 
-        <motion.form
-          onSubmit={handleSubmit}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-full max-w-xl"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col items-center gap-4"
         >
-          <div className="bg-white border border-slate-200 rounded-2xl p-2.5 sm:p-3 shadow-xl shadow-slate-200/50">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit(e)
-                }
-              }}
-              placeholder="Describe the app you want to build..."
-              rows={2}
-              className="w-full bg-transparent resize-none px-2.5 sm:px-3 py-2 text-sm sm:text-base placeholder:text-slate-400 focus:outline-none leading-relaxed text-slate-800"
-              autoFocus
-            />
-
-            <div className="flex items-center justify-between pt-1 px-0.5 sm:px-1 gap-2">
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                {FRAMEWORKS.map((fw) => {
-                  const Icon = fw.icon
-                  return (
-                    <button
-                      key={fw.id}
-                      type="button"
-                      onClick={() => setFramework(fw.id)}
-                      className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-                        framework === fw.id
-                          ? 'bg-red-50 text-red-600'
-                          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      {fw.label}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <Button
-                type="submit"
-                disabled={!prompt.trim() || isCreating}
-                size="sm"
-                className="rounded-xl px-4 sm:px-5 gap-1.5 h-8 shrink-0 text-xs sm:text-sm"
-              >
-                {isCreating ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                    </motion.div>
-                    <span className="hidden sm:inline">Creating...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="hidden sm:inline">Build</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </motion.form>
+          <Button size="lg" className="rounded-xl px-8 gap-2 h-12 text-base shadow-lg shadow-red-500/25" onClick={loginWithGithub}>
+            <GitBranch className="w-4 h-4" />
+            Get Started with GitHub
+          </Button>
+          <p className="text-xs text-slate-400">Free to start. No credit card required.</p>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-          className="mt-5 sm:mt-8 max-w-xl w-full"
+          transition={{ delay: 0.5 }}
+          className="mt-16 sm:mt-20 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full"
         >
-          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
-            <AnimatePresence>
-              {EXAMPLES.map((example, i) => (
-                <motion.button
-                  key={example}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.04 }}
-                  onClick={() => setPrompt(example)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-slate-500 text-[11px] sm:text-xs hover:text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer active:scale-95"
-                >
-                  {example}
-                </motion.button>
-              ))}
-            </AnimatePresence>
-          </div>
+          {[
+            { title: 'Describe it', desc: 'Tell AI what you want in plain English' },
+            { title: 'Watch it build', desc: 'See code generated and app preview live' },
+            { title: 'Deploy instantly', desc: 'Publish to web, Google Play, or App Store' },
+          ].map((step, i) => (
+            <motion.div
+              key={step.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + i * 0.1 }}
+              className="p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md hover:border-slate-300 transition-all text-center"
+            >
+              <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center mx-auto mb-2.5 text-red-500 font-bold text-sm">
+                {i + 1}
+              </div>
+              <h3 className="font-semibold text-sm text-slate-900 mb-1">{step.title}</h3>
+              <p className="text-xs text-slate-500">{step.desc}</p>
+            </motion.div>
+          ))}
         </motion.div>
       </main>
     </div>

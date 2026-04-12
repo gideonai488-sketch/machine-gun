@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Zap,
   Eye,
   Code2,
   Share2,
@@ -10,6 +9,7 @@ import {
   Loader2,
   MessageSquare,
 } from 'lucide-react'
+import FalconIcon from '@/components/icons/FalconIcon'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useProject, ProjectProvider } from '@/stores/project-store'
@@ -86,9 +86,9 @@ function WorkspaceContent() {
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
-              <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+              <FalconIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
             </div>
-            <span className="font-semibold text-xs sm:text-sm text-slate-900 hidden sm:block">DevFlow</span>
+            <span className="font-semibold text-xs sm:text-sm text-slate-900 hidden sm:block">Machine Gun</span>
           </div>
 
           <div className="h-3.5 w-px bg-slate-200 hidden sm:block" />

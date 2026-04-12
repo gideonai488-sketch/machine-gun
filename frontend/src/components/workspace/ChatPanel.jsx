@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Send,
   User,
-  Sparkles,
   Loader2,
   FileCode,
   Package,
@@ -13,6 +12,7 @@ import {
   Search,
   Rocket,
 } from 'lucide-react'
+import FalconIcon from '@/components/icons/FalconIcon'
 import { Button } from '@/components/ui/button'
 import { useProject } from '@/stores/project-store'
 import { socket } from '@/lib/socket'
@@ -77,7 +77,7 @@ function MessageBubble({ message }) {
         {isUser ? (
           <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
         ) : (
-          <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
+          <FalconIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
         )}
       </div>
       <div className={cn(
@@ -164,9 +164,9 @@ export default function ChatPanel() {
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-[240px] sm:max-w-xs">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-red-50 to-rose-50 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
+                <FalconIcon className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
               </div>
-              <h3 className="font-semibold text-sm text-slate-900 mb-1">DevFlow AI</h3>
+              <h3 className="font-semibold text-sm text-slate-900 mb-1">Machine Gun AI</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 I'll build your app and you'll see it live. Just tell me what to change.
               </p>
@@ -190,7 +190,7 @@ export default function ChatPanel() {
               value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(e) }}
               onKeyDown={handleKeyDown}
-              placeholder={isStreaming ? 'Wait for response...' : 'Ask DevFlow to build something...'}
+              placeholder={isStreaming ? 'Wait for response...' : 'Tell Machine Gun what to build...'}
               rows={1}
               disabled={isStreaming}
               className="w-full bg-transparent resize-none px-3 sm:px-3.5 pt-2.5 sm:pt-3 pb-1 text-[13px] sm:text-sm placeholder:text-slate-400 focus:outline-none leading-relaxed disabled:opacity-50 text-slate-800"
