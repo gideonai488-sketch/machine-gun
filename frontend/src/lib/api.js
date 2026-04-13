@@ -1,11 +1,19 @@
+import { supabase } from './supabase'
+
 const API_URL = import.meta.env.VITE_BACKEND_URL || ''
+
+async function getAuthToken() {
+  if (!supabase) return null
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token || null
+}
 
 async function request(path, options = {}) {
   if (!API_URL) {
     throw new Error('Coming soon')
   }
 
-  const token = localStorage.getItem('mg_token')
+  const token = await getAuthToken()
 
   const res = await fetch(`${API_URL}${path}`, {
     headers: {

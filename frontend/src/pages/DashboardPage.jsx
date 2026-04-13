@@ -26,7 +26,7 @@ const FRAMEWORKS = [
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
   const [projects, setProjects] = useState([])
   const [prompt, setPrompt] = useState('')
   const [framework, setFramework] = useState('react-vite')
@@ -66,7 +66,7 @@ export default function DashboardPage() {
               onClick={() => setShowMenu(!showMenu)}
               className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer"
             >
-              {user?.name?.[0]?.toUpperCase() || user?.login?.[0]?.toUpperCase() || '?'}
+              {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
             </button>
 
             {showMenu && (
@@ -74,7 +74,7 @@ export default function DashboardPage() {
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 top-10 z-20 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-200/50 w-48 py-1">
                   <div className="px-3 py-2 border-b border-slate-100">
-                    <p className="text-sm font-medium text-slate-900 truncate">{user?.name || user?.login}</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">{user?.user_metadata?.name || user?.email}</p>
                     <p className="text-xs text-slate-400 truncate">{user?.email || ''}</p>
                   </div>
                   <Link
@@ -86,7 +86,7 @@ export default function DashboardPage() {
                     Settings
                   </Link>
                   <button
-                    onClick={() => { logout(); setShowMenu(false) }}
+                    onClick={() => { signOut(); setShowMenu(false) }}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />

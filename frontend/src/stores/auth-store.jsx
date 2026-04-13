@@ -1,74 +1,60 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const AuthContext = createContext(null)
-
-const API_URL = import.meta.env.VITE_BACKEND_URL || ''
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchUser = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('mg_token')
-      if (!token) {
-        setLoading(false)
-        return
-      }
-
-      if (!API_URL) {
-        setLoading(false)
-        return
-      }
-
-      const res = await fetch(`${API_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setUser(data.user)
-      } else {
-        localStorage.removeItem('mg_token')
-      }
-    } catch (err) {
-      console.error('Auth check failed:', err)
-      localStorage.removeItem('mg_token')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchUser() }, [fetchUser])
-
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const token = params.get('token')
-    if (token) {
-      localStorage.setItem('mg_token', token)
-      window.history.replaceState({}, '', window.location.pathname)
-      fetchUser()
-    }
-  }, [fetchUser])
-
-  function loginWithGithub() {
-    if (!API_URL) {
-      window.location.href = '/coming-soon'
+    if (!supabase) {
+      setLoading(false)
       return
     }
-    window.location.href = `${API_URL}/api/auth/github`
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function signUp(email, password, name) {
+    if (!supabase) throw new Error('Not configured')
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    })
+    if (error) throw error
+    return data
   }
 
-  function logout() {
-    localStorage.removeItem('mg_token')
+  async function signIn(email, password) {
+    if (!supabase) throw new Error('Not configured')
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return data
+  }
+
+  async function signOut() {
+    if (!supabase) return
+    await supabase.auth.signOut()
     setUser(null)
   }
 
   function getToken() {
-    return localStorage.getItem('mg_token')
+    return supabase?.auth?.getSession().then(({ data }) => data.session?.access_token)
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGithub, logout, getToken }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, getToken }}>
       {children}
     </AuthContext.Provider>
   )

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/stores/auth-store'
+import { cn } from '@/lib/utils'
 import FalconIcon from '@/components/icons/FalconIcon'
 
 const CONNECTIONS = [
@@ -22,7 +23,7 @@ const CONNECTIONS = [
 ]
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -45,18 +46,12 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold text-slate-900 mb-3">Profile</h2>
           <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-bold text-lg">
-              {user?.name?.[0]?.toUpperCase() || user?.login?.[0]?.toUpperCase() || '?'}
+              {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-slate-900">{user?.name || user?.login || 'User'}</p>
+              <p className="font-semibold text-slate-900">{user?.user_metadata?.name || 'User'}</p>
               <p className="text-sm text-slate-500 truncate">{user?.email || 'No email'}</p>
             </div>
-            <Button variant="outline" size="sm" className="text-xs gap-1.5" asChild>
-              <a href={`https://github.com/${user?.login}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-3 h-3" />
-                GitHub
-              </a>
-            </Button>
           </div>
         </section>
 
@@ -97,7 +92,7 @@ export default function SettingsPage() {
               variant="outline"
               size="sm"
               className="text-xs text-red-500 border-red-200 hover:bg-red-50 gap-1.5"
-              onClick={logout}
+              onClick={signOut}
             >
               <LogOut className="w-3 h-3" />
               Sign out
