@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Machine Gun"
+version = "1.0.0"
+id = "artifacts/machine-gun"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24785
+
+[services.development]
+run = "pnpm --filter @workspace/machine-gun run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/machine-gun", "run", "build" ]
+publicDir = "artifacts/machine-gun/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24785"
+BASE_PATH = "/"
