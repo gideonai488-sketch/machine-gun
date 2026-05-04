@@ -2,6 +2,14 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
+interface UserMetadata {
+  name?: string
+}
+
+export function getUserMeta(user: User | null): UserMetadata {
+  return (user?.user_metadata ?? {}) as UserMetadata
+}
+
 interface AuthContextType {
   user: User | null
   loading: boolean

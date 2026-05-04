@@ -14,7 +14,8 @@ import PreviewPanel from '@/components/workspace/PreviewPanel'
 import CodeEditor from '@/components/workspace/CodeEditor'
 import DeployPanel from '@/components/workspace/DeployPanel'
 
-const STATUS_CONFIG: Record<string, { label: string; variant: any; loading?: boolean }> = {
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'
+const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant; loading?: boolean }> = {
   idle: { label: 'Ready', variant: 'secondary' },
   initializing: { label: 'Setting up...', variant: 'warning', loading: true },
   building: { label: 'Building...', variant: 'warning', loading: true },

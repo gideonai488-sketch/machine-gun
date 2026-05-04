@@ -5,7 +5,7 @@ import {
   Plus, Smartphone, Globe, Layers, ArrowRight, Clock, Settings, LogOut, FolderOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/stores/auth-store'
+import { useAuth, getUserMeta } from '@/stores/auth-store'
 import { api } from '@/lib/api'
 import FalconIcon from '@/components/icons/FalconIcon'
 import { cn } from '@/lib/utils'
@@ -29,7 +29,7 @@ export default function DashboardPage() {
     api.listProjects().then(setProjects).catch(console.error)
   }, [])
 
-  async function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent | React.KeyboardEvent) {
     e.preventDefault()
     if (!prompt.trim() || isCreating) return
     setIsCreating(true)
@@ -58,7 +58,7 @@ export default function DashboardPage() {
               onClick={() => setShowMenu(!showMenu)}
               className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer"
             >
-              {(user as any)?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+              {getUserMeta(user).name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
             </button>
 
             {showMenu && (
@@ -66,7 +66,7 @@ export default function DashboardPage() {
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 top-10 z-20 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-200/50 w-48 py-1">
                   <div className="px-3 py-2 border-b border-slate-100">
-                    <p className="text-sm font-medium text-slate-900 truncate">{(user as any)?.user_metadata?.name || user?.email}</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">{getUserMeta(user).name || user?.email}</p>
                     <p className="text-xs text-slate-400 truncate">{user?.email || ''}</p>
                   </div>
                   <Link
@@ -108,7 +108,7 @@ export default function DashboardPage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreate(e as any) }
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCreate(e) }
                 }}
                 placeholder="A habit tracker with streaks and weekly stats..."
                 rows={2}

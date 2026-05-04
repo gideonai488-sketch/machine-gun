@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Key, Smartphone, Apple, CheckCircle2, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/stores/auth-store'
+import { useAuth, getUserMeta } from '@/stores/auth-store'
 import FalconIcon from '@/components/icons/FalconIcon'
 
 const CONNECTIONS = [
@@ -36,10 +36,10 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold text-slate-900 mb-3">Profile</h2>
           <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-bold text-lg">
-              {(user as any)?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+              {getUserMeta(user).name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-slate-900">{(user as any)?.user_metadata?.name || 'User'}</p>
+              <p className="font-semibold text-slate-900">{getUserMeta(user).name || 'User'}</p>
               <p className="text-sm text-slate-500 truncate">{user?.email || 'No email'}</p>
             </div>
           </div>

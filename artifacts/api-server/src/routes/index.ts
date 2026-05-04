@@ -1,8 +1,14 @@
-import { Router, type IRouter } from "express";
-import healthRouter from "./health";
+import { Router, type IRouter } from 'express'
+import { projectRouter } from './projects.js'
+import { authRouter } from './auth.js'
 
-const router: IRouter = Router();
+const router: IRouter = Router()
 
-router.use(healthRouter);
+router.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
 
-export default router;
+router.use('/auth', authRouter)
+router.use('/projects', projectRouter)
+
+export default router
